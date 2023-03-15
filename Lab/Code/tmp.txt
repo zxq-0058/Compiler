@@ -1,0 +1,76 @@
+
+
+%option noyywrap
+%{
+    /*
+     * Stuff enclosed in %{ %} in the first section is copied verbatim to the
+     * output, so headers and global definitions are placed here to be visible
+     * to the code in the file.  Don't remove anything that was here initially
+     */
+    // Add nesscary lib or macro or var
+    #include <stdio.h>
+    #include <stdlib.h>
+    // #include "./include/lexical.h"
+%}
+
+/* TODO:: add you regular expression here! */
+STRUCT struct
+RETURN return 
+IF if
+ELSE else 
+WHILE while
+SEMI ;
+COMMA ,
+ASSIGNOP =
+RELOP >|<|>=|<=|==|!=
+PLUS \+
+MINUS \-
+STAR \*
+DIV \/
+AND &&
+OR \|\|
+DOT \.
+NOT \!
+TYPE int|float
+LP \(
+RP \)
+LB \[
+RB \]
+LC \{
+RC \}
+INT 0[xX][0-9a-fA-F]+|0[0-7]*|\d+
+/* 这个是从C的float定义抄过来的，不是讲义的描述内容，所以待定检查*/
+FLOAT [-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?
+ID [a-zA-Z_][a-zA-Z0-9_]*
+%%
+{
+{STRUCT} {printf("STRUCT\n");}
+{RETURN} {printf("RETURN\n");}
+{IF} {printf("IF\n");}
+{ELSE} {printf("ELSE\n");}
+{WHILE} {printf("WHILE\n");}
+{SEMI} {printf("SEMI\n");}
+{COMMA} {printf("COMMA\n");}
+{ASSIGNOP} {printf("ASSIGNOP\n");}
+{RELOP} {printf("RELOP\n");}
+{PLUS} {printf("PLUS\n");}
+{MINUS} {printf("MINUS\n");}
+{STAR} {printf("STAR\n");}
+{DIV} {printf("DIV\n");}
+{AND} {printf("AND\n");}
+{OR} {printf("OR\n");}
+{DOT} {printf("DOT\n");}
+{NOT} {printf("NOT\n");}
+{TYPE} {printf("TYPE\n");}
+{LP} {printf("LP\n");}
+{RP} {printf("RP\n");}
+{LB} {printf("LB\n");}
+{RB} {printf("RB\n");}
+{LC} {printf("LC\n");}
+{RC} {printf("RC\n");}
+{INT} {printf("INT\n");}
+{FLOAT} {printf("FLOAT\n");}
+{ID} {printf("ID\n");}
+
+}
+%%

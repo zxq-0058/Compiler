@@ -1,0 +1,67 @@
+Specifier: TYPE { 
+        ASTNode *type = newTYPE(yylval.string_val);
+        $$ = newASTNode("Specifier", @1.first_line, 1, type);
+        }
+        | StructSpecifier {
+        $$ = newASTNode("Specifier", @1.first_line, 1, $1);
+        }
+        ;
+
+StructSpecifier: STRUCT OptTag LC DefList RC {
+        ASTNode *stru = newKeyword(STRUCT);
+        ASTNode *lc = newOperator(LC);
+        ASTNode *rc = newOperator(RC);
+        $$ = newASTNode("StructSpecifier", @1.first_line, 5, stru, $2, lc, $4, rc); 
+        }
+        | STRUCT Tag {
+        ASTNode *stru = newKeyword(STRUCT);
+        Log("------------------");
+        $$ = newASTNode("StructSpecifier", @1.first_line, 2, stru, $2);
+        }
+        ;
+
+OptTag: ID {
+        ASTNode *id = newID(yylval.string_val);
+        $$ = newASTNode("OptTag", @1.first_line, 1, id);
+        } 
+        | Epsilon;
+
+Tag: ID {
+        Log("Tag产生式:%s", yylval.string_val);
+        ASTNode *id = newID(yylval.string_val);
+        $$ = newASTNode("Tag", @1.first_line, 1, id);
+        }
+        ;
+
+
+
+DefList: Def DefList {
+        $$ = newASTNode("DefList", @1.first_line, 2, $1, $2);
+        }
+        | Epsilon
+        ;
+
+Def: Specifier DecList SEMI {
+        ASTNode *semi = newSEMI();
+        $$ = newASTNode("Def", @1.first_line, 3, $1, $2, semi);
+        }
+        ;
+    
+DecList: Dec {
+        $$ = newASTNode("DecList", @1.first_line, 1, $1);
+        }
+        | Dec COMMA DecList{
+        ASTNode *comma = newCOMMA();
+        $$ = newASTNode("DecList", @1.first_line, 3, $1, comma, $3);
+        }
+        ;
+
+Dec:VarDec {
+        $$ = newASTNode("Dec", @1.first_line, 1, $1);
+        }
+        | VarDec ASSIGNOP Exp {
+        ASTNode *assignop = newOperator(ASSIGNOP);
+        $$ = newASTNode("Dec", @1.first_line, 3, $1, assignop, $3);
+        }
+        ;
+

@@ -1,0 +1,8 @@
+int main() {
+    float a = 0.11; // 正确
+    float b = 8.E1; // 正确
+    float c = 8.E; // 错误
+    float d = 43.E-4; // 正确
+    float e = 01.23E12; // 正确
+    float f = .5E03; // 正确
+}

@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Lab1_debug",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/Code/parser",
+            "args": [
+                "./Test/test2.cmm"
+            ],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "MIMode": "gdb",
+            "preLaunchTask": "Lab1_build"
+        }
+    ]
+}
