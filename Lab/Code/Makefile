@@ -34,7 +34,14 @@ syntax-c: $(YFILE)
 -include $(patsubst %.o, %.d, $(OBJS))
 
 # 定义的一些伪目标
-.PHONY: clean test
+.PHONY: clean test extract
+extract:
+	./parser ./Test/fault1.cmm 1>1.txt
+	./parser ./Test/fault2.cmm 1>2.txt
+	./parser ./Test/fault3.cmm 1>3.txt
+	python3 extract.py
+	./fault_test.sh 
+
 test:
 	./parser ../Test/test1.cmm
 clean:

@@ -10,9 +10,18 @@
     #include "logger.h"
     #include "lex.yy.c"
     
+    #ifdef YYDEBUG
+    #undef YYDEBUG
+    #endif
+
+//     #define YYDEBUG 1
+
     extern int yylex();           /*  the entry point to the lexer  */
-    void yyerror(char* s);        /* errors reporting */
     int syntax_error = 0;         /* indicating whether syntax errors occur */
+    void yyerror(const char* s) {
+        syntax_error = 1;
+        fprintf(stdout, "Error type B at Line %d: %s.\n", yylineno, s);
+    }       /* errors reporting */
     extern int lexical_error;     /* indicating whether lexical errors occur(lexical.l)*/
 %}
 
@@ -41,11 +50,10 @@
 %left RELOP
 %left PLUS MINUS
 %left STAR DIV
-%right NOT
+%right NOT UMINUS
 %left LP RP LB RB DOT
 /* %left ELSE */
 %nonassoc LOWER_THAN_ELSE
-
 
 /* Non-terminals */
 %type<ast_node> Epsilon /* to match empty rules */
@@ -56,6 +64,8 @@
 %type<ast_node> DefList Def DecList Dec
 %type<ast_node> Exp Args
 
+
+%define parse.error verbose
 /* %destructor { Panic("TODO:free the Node!"); } <ast_node> */
 
 %start Program
@@ -89,7 +99,19 @@ ExtDef: Specifier ExtDecList SEMI {
         | Specifier FunDec CompSt{
         $$ = newASTNode("ExtDef", @1.first_line, 3, $1, $2, $3); 
         }
+        | Specifier ExtDecList error {
+        $$ = NULL;
+        Warn("Global Definition Likely Missing ';'");
+        yyerrok;      
+        };
+        | Specifier error {
+        $$ = NULL;
+        Warn("Struct Definition Likely Missing ';'");
+        yyerrok;      
+        };
         | error SEMI {
+        $$ = NULL;
+        // yyerrok说明不需要丢弃任何符号，在分号之后重新进行分析
         yyerrok;
         };
 
@@ -97,8 +119,21 @@ ExtDecList: VarDec {
         $$ = newASTNode("ExtDecList", @1.first_line, 1, $1);
         }
         | VarDec COMMA ExtDecList {
-        $$ = newASTNode("VarDec", @1.first_line, 3, $1, $2, $3);
-        };
+        $$ = newASTNode("ExtDecList", @1.first_line, 3, $1, $2, $3);
+        }
+        | VarDec COMMA error {
+        $$ = NULL;
+        Warn("");
+        }
+        | VarDec error ExtDecList {
+        $$ = NULL;
+        Warn("Should be ',' between vars");
+        }
+        | VarDec error {
+        $$ = NULL;
+        Warn("Possibly Missing ','");
+        }
+        ;
 
 /* Specifiers */
 Specifier: TYPE {
@@ -115,7 +150,9 @@ StructSpecifier : STRUCT OptTag LC DefList RC {
         | STRUCT Tag {
         $$ = newASTNode("StructSpecifier", @1.first_line, 2, $1, $2);
         }
-        | error RC { yyerrok; }
+        | STRUCT OptTag LC error {yyerrok;};
+        | STRUCT OptTag LC error RC {yyerrok;};
+        /* | error RC { yyerrok; } */
         ;
 
 OptTag : ID {
@@ -130,22 +167,25 @@ Tag : ID {
 /* Declarators */
 VarDec: ID { $$ = newASTNode("VarDec", @1.first_line, 1, $1); }
         | VarDec LB INT RB { $$ = newASTNode("VarDec", @1.first_line, 4, $1, $2, $3, $4); } 
-        | VarDec LB error RB { syntax_error = 1; yyerrok; yyerror("Missing ']'\n"); };
+        | VarDec LB error RB { syntax_error = 1; yyerrok;};
 
 FunDec: ID LP VarList RP { $$ = newASTNode("FunDec", @1.first_line, 4, $1, $2, $3, $4); }
-        | ID LP RP { $$ = newASTNode("FunDec", @1.first_line, 3, $1, $2, $3); }
-        | error RP { yyerrok; } ;
+        | ID LP RP { $$ = newASTNode("FunDec", @1.first_line, 3, $1, $2, $3); };
+        | error RP { yyerrok; } ; // TODO: 
 
 VarList: ParamDec COMMA VarList { $$ = newASTNode("VarList", @1.first_line, 3, $1, $2, $3); }
         | ParamDec { $$ = newASTNode("VarList", @1.first_line, 1, $1); } ;
+        | ParamDec COMMA error { $$ = NULL; yyerrok;} ; // 缺失逗号 int main(int i, int j, )
+        | ParamDec error VarList { $$ = NULL; yyerrok; }; // 缺失逗号 int main(int i int j)
 
-ParamDec: Specifier VarDec{ $$ = newASTNode("ParamDec", @1.first_line, 2, $1, $2); } 
-        /* | error COMMA { syntax_error = 1; yyerrok("Parameter Dec Missing ';'\n");} */
+ParamDec: Specifier VarDec{ $$ = newASTNode("ParamDec", @1.first_line, 2, $1, $2); } ;
+        | Specifier error {}; // int j i
+        | error VarDec {} // int int i
         ;
 
 /* Statements */
 CompSt: LC DefList StmtList RC { $$ = newASTNode("CompSt", @1.first_line, 4, $1, $2, $3, $4); }
-        | error RC { yyerrok; } ;
+        | error RC { yyerrok; } ; // 右括号缺失正常处理
 
 StmtList: Stmt StmtList { $$ = newASTNode("StmtList", @1.first_line, 2, $1, $2); }
         | Epsilon ;
@@ -156,7 +196,9 @@ Stmt: Exp SEMI { $$ = newASTNode("Stmt", @1.first_line, 2, $1, $2); }
         | IF LP Exp RP Stmt %prec LOWER_THAN_ELSE{ $$ = newASTNode("Stmt", @1.first_line, 5, $1, $2, $3, $4, $5); }
         | IF LP Exp RP Stmt ELSE Stmt { $$ = newASTNode("Stmt", @1.first_line, 7, $1, $2, $3, $4, $5, $6, $7); }
         | WHILE LP Exp RP Stmt { $$ = newASTNode("Stmt", @1.first_line, 5, $1, $2, $3, $4, $5); }
-        | error SEMI { yyerror("Missing ';'\n"); yyerrok; } ;
+        | Exp error { yyerrok; }
+        | RETURN Exp error { yyerrok; }  // TODO: 考虑If 和while的正确性
+        | error SEMI { yyerrok; } ;
 
 /* Local Definitions */
 DefList: Def DefList {
@@ -164,13 +206,21 @@ DefList: Def DefList {
         } | Epsilon ;
 
 Def: Specifier DecList SEMI{ $$ = newASTNode("Def", @1.first_line, 3, $1, $2, $3); }
-        | error SEMI { yyerrok; } ;
+        | Specifier DecList error { Log("局部变量声明出错\n"); yyerrok;}
+        | Specifier error {yyerrok;}
+        /* | error SEMI { Log("局部变量声明出错，假装归纳到Def(局部变量的声明)"); yyerrok; } ; */
 
 DecList: Dec { $$ = newASTNode("DecList", @1.first_line, 1, $1); } 
         | Dec COMMA DecList { $$ = newASTNode("DecList", @1.first_line, 3, $1, $2, $3); }; 
+        | Dec COMMA error {} // 多余逗号
 
 Dec: VarDec { $$ = newASTNode("Dec", @1.first_line, 1, $1); } 
         | VarDec ASSIGNOP Exp { $$ = newASTNode("Dec", @1.first_line, 3, $1, $2, $3); };
+        | error ASSIGNOP Exp {
+        $$ = NULL;
+        Warn("Error in declaration: missing variable");
+        yyerrok;
+        };
 
 /* Expressions */
 Exp: Exp ASSIGNOP Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); }
@@ -182,7 +232,7 @@ Exp: Exp ASSIGNOP Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); }
         | Exp STAR Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); }
         | Exp DIV Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); }
         | LP Exp RP { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); }
-        | MINUS Exp { $$ = newASTNode("Exp", @1.first_line, 2, $1, $2); }
+        | MINUS Exp %prec UMINUS { $$ = newASTNode("Exp", @1.first_line, 2, $1, $2); }
         | NOT Exp{ $$ = newASTNode("Exp", @1.first_line, 2, $1, $2); }
         | ID LP Args RP { $$ = newASTNode("Exp", @1.first_line, 4, $1, $2, $3, $4); }
         | ID LP RP { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); }
@@ -194,14 +244,15 @@ Exp: Exp ASSIGNOP Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); }
         | error RP { yyerrok; } ;
 
 Args: Exp COMMA Args { $$ = newASTNode("Args", @1.first_line, 3, $1, $2, $3); }
-        | Exp { $$ = newASTNode("Args", @1.first_line, 1, $1); } ;
+        | Exp { $$ = newASTNode("Args", @1.first_line, 1, $1); } 
+        | error COMMA Args {
+                $$ = NULL;
+                Warn("Error in function arguments: missing argument");
+                yyerrok;
+        };
 
 %%
 
-void yyerror(char* s) {
-    syntax_error = 1;
-    fprintf(stdout, "Error type B at Line %d: %s.\n", yylineno, s);
-}
 
 ASTNode *newASTNode(const char *name, int lineno, int numChildren, ...)
 {
@@ -294,7 +345,7 @@ ASTNode *newOperator(int op_type) {
      return op;
 }
 
-ASTNode *newInt(int _int) {
+ASTNode *newInt(unsigned int _int) {
      ASTNode *i = newASTNode("INT", -1, 0);
      i->value_type = INT_;
      i->value.ival = _int;
@@ -360,7 +411,7 @@ void dfs_print(ASTNode *node, int depth) {
         switch(node->value_type) {
                 case ID_ : printf("%s", node->value.id); break;
                 case TYPE_: printf("%s", node->value.type); break;
-                case INT_ :printf("%d", node->value.ival); break;
+                case INT_ :printf("%u", node->value.ival); break;
                 case FLOAT_: printf("%f", node->value.fval); break;
                 default: Panic("Invalid value type!");
         }

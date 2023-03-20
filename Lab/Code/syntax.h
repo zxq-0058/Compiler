@@ -12,7 +12,7 @@ typedef struct value
 {
     char id[32];
     char type[8]; // int or float
-    int ival;
+    unsigned int ival;
     float fval;
 } value_t;
 
@@ -47,7 +47,7 @@ ASTNode *newProgram(int lineno, ASTNode *ExtDefList);
 ASTNode *newTYPE(const char *type);
 ASTNode *newID(char *id_name);
 ASTNode *newOperator(int op_type);
-ASTNode *newInt(int _int);
+ASTNode *newInt(unsigned int _int);
 ASTNode *newFloat(float _float);
 ASTNode *newSEMI();
 ASTNode *newCOMMA();

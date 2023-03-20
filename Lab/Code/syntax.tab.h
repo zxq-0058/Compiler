@@ -76,7 +76,8 @@ extern int yydebug;
     ID = 282,
     INT = 283,
     FLOAT = 284,
-    LOWER_THAN_ELSE = 285
+    UMINUS = 285,
+    LOWER_THAN_ELSE = 286
   };
 #endif
 
@@ -84,11 +85,11 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 19 "./syntax.y"
+#line 28 "./syntax.y"
 
     ASTNode* ast_node;
 
-#line 92 "./syntax.tab.h"
+#line 93 "./syntax.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

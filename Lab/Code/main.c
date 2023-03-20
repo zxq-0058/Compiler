@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "logger.h"
 extern void print_AST();
+// extern int yydebug;
 
 int main(int argc, char **argv)
 {
@@ -16,6 +17,7 @@ int main(int argc, char **argv)
         return 1;
     }
     yyrestart(f);
+    // yydebug = 1;
     yyparse();
     print_AST(); // TODO: error handle
     return 0;

@@ -7,7 +7,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/Code/parser",
             "args": [
-                "./Test/test2.cmm"
+                "./Test/test1.cmm"
             ],
             "stopAtEntry": true,
             "cwd": "${workspaceFolder}",

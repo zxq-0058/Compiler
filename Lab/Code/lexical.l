@@ -112,7 +112,7 @@ WHITE_SPACE    [ \t\f\r\v]+
         char * end_ptr;
         char hex_str[32];
         strcpy(hex_str, yytext);
-        int int_val = (int)strtol(hex_str, &end_ptr, 16);
+        unsigned int int_val = (int)strtol(hex_str, &end_ptr, 16);
         if(end_ptr != hex_str + strlen(hex_str)) Panic("Invaild hex number!");
         yylval.ast_node = newInt(int_val);
         return INT;
@@ -122,14 +122,14 @@ WHITE_SPACE    [ \t\f\r\v]+
         char * end_ptr;
         char oct_str[32];
         strcpy(oct_str, yytext);
-        int int_val = (int)strtol(oct_str, &end_ptr, 8);
+        unsigned int int_val = (int)strtol(oct_str, &end_ptr, 8);
         if(end_ptr != oct_str + strlen(oct_str)) Panic("Invaild octonary number!");
         yylval.ast_node = newInt(int_val);
         return INT;
 }
 
 {DECIMAL} {
-        int int_val = atoi(yytext);
+        unsigned int int_val = atoi(yytext);
         yylval.ast_node = newInt(int_val);
         return INT;
 }
@@ -148,7 +148,7 @@ WHITE_SPACE    [ \t\f\r\v]+
 <COMMENT>"*/" {BEGIN(INITIAL);}
 <COMMENT>([^*]|\n)+|.
 <COMMENT><<EOF>> {
-    printf("Error type A at Line %d: EOF in comment\n", yylineno);
+    printf("Error type A at Line %d: EOF in comment.\n", yylineno);
     lexical_error = 1;
     BEGIN(INITIAL);
 }

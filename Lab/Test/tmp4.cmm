@@ -1,0 +1,6 @@
+int main() 
+{
+	// 这里应该会报错
+	int i = 1e ;
+    int j = 1e ;
+}
