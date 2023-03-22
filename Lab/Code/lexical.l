@@ -70,7 +70,7 @@ WHITE_SPACE    [ \t\f\r\v]+
 
 %%
 
-{STRUCT}   { yylval.ast_node = newKeyword(STRUCT); return STRUCT;}
+{STRUCT}   { yylval.ast_node = newASTNode("STRUCT", -1, 0); return STRUCT;}
 {RETURN}   { yylval.ast_node = newKeyword(RETURN); return RETURN;}
 {IF}       { yylval.ast_node = newKeyword(IF); return IF;}
 {ELSE}     { yylval.ast_node = newKeyword(ELSE); return ELSE;}

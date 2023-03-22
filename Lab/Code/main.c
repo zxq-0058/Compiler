@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "logger.h"
+
+extern void yyrestart(FILE *input_file);
+extern int yyparse(void);
 extern void print_AST();
 // extern int yydebug;
 
@@ -19,23 +22,7 @@ int main(int argc, char **argv)
     yyrestart(f);
     // yydebug = 1;
     yyparse();
-    print_AST(); // TODO: error handle
+    print_AST();
     return 0;
 }
 
-// #include <stdio.h>
-// #include <stdlib.h>
-
-// extern FILE* yyin;
-// extern int yylex();
-
-// int main(int argc, char** argv) {
-//     if(argc > 1) {
-//         if (!(yyin = fopen(argv[1], "r"))) {
-//             perror(argv[1]);
-//             exit(1);
-//         }
-//     }
-//     while (yylex() != 0);
-//     return 0;
-// }

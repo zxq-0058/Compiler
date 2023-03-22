@@ -54,6 +54,7 @@
 %left LP RP LB RB DOT
 /* %left ELSE */
 %nonassoc LOWER_THAN_ELSE
+%nonassoc ELSE
 
 /* Non-terminals */
 %type<ast_node> Epsilon /* to match empty rules */
@@ -128,10 +129,6 @@ ExtDecList: VarDec {
         | VarDec error ExtDecList {
         $$ = NULL;
         Warn("Should be ',' between vars");
-        }
-        | VarDec error {
-        $$ = NULL;
-        Warn("Possibly Missing ','");
         }
         ;
 
