@@ -28,7 +28,6 @@
 %}
 %x  COMMENT
 /* Define regular expressions for each token */
-/* TODO:: add you regular expression here! */
 STRUCT struct
 RETURN return 
 IF if

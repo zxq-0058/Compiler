@@ -168,7 +168,7 @@ VarDec: ID { $$ = newASTNode("VarDec", @1.first_line, 1, $1); }
 
 FunDec: ID LP VarList RP { $$ = newASTNode("FunDec", @1.first_line, 4, $1, $2, $3, $4); }
         | ID LP RP { $$ = newASTNode("FunDec", @1.first_line, 3, $1, $2, $3); };
-        | error RP { yyerrok; } ; // TODO: 
+        | error RP { yyerrok; } ;
 
 VarList: ParamDec COMMA VarList { $$ = newASTNode("VarList", @1.first_line, 3, $1, $2, $3); }
         | ParamDec { $$ = newASTNode("VarList", @1.first_line, 1, $1); } ;
@@ -194,7 +194,7 @@ Stmt: Exp SEMI { $$ = newASTNode("Stmt", @1.first_line, 2, $1, $2); }
         | IF LP Exp RP Stmt ELSE Stmt { $$ = newASTNode("Stmt", @1.first_line, 7, $1, $2, $3, $4, $5, $6, $7); }
         | WHILE LP Exp RP Stmt { $$ = newASTNode("Stmt", @1.first_line, 5, $1, $2, $3, $4, $5); }
         | Exp error { yyerrok; }
-        | RETURN Exp error { yyerrok; }  // TODO: 考虑If 和while的正确性
+        | RETURN Exp error { yyerrok; } 
         | error SEMI { yyerrok; } ;
 
 /* Local Definitions */
