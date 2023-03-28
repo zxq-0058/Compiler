@@ -58,7 +58,7 @@
 
 /* Non-terminals */
 %type<ast_node> Epsilon /* to match empty rules */
-%type<ast_node> Program ExtDefList ExtDef ExtDecList
+%type<ast_node> Program ExtDefList ExtDef ExtDecList Function_Declaration Function_Definition
 %type<ast_node> Specifier StructSpecifier OptTag Tag
 %type<ast_node> VarDec FunDec VarList ParamDec
 %type<ast_node> CompSt StmtList Stmt
@@ -87,6 +87,12 @@ ExtDefList: ExtDef ExtDefList {
         }
         | Epsilon;
 
+/* 函数声明 */
+Function_Declaration: Specifier FunDec SEMI { $$ = newASTNode("Function_Declaration", @1.first_line, 3, $1, $2, $3); }
+/* 函数定义 */
+Function_Definition: Specifier FunDec CompSt { $$ = newASTNode("Function_Definition", @1.first_line, 3, $1, $2, $3); }
+
+
 ExtDef: Specifier ExtDecList SEMI {
         /* Global var */
         Log("Global var matched!");
@@ -97,8 +103,11 @@ ExtDef: Specifier ExtDecList SEMI {
         Log("Struct def matched!");
         $$ = newASTNode("ExtDef", @1.first_line, 2, $1, $2);
         }
-        | Specifier FunDec CompSt{
-        $$ = newASTNode("ExtDef", @1.first_line, 3, $1, $2, $3); 
+        | Function_Declaration {
+        $$ = newASTNode("ExtDef", @1.first_line, 1, $1);
+        }
+        | Function_Definition {
+        $$ = newASTNode("ExtDef", @1.first_line, 1, $1);
         }
         | Specifier ExtDecList error {
         $$ = NULL;

@@ -1,52 +1,101 @@
 #include "semantics.h"
+#include "logger.h"
+
+// 计算符号名字的哈希值
+static unsigned int hash_symbol_name(const char *name)
+{
+    unsigned int hash = 0, i;
+    for (; *name; ++name)
+    {
+        hash = (hash << 2) + *name;
+        if (i = hash & ~0x3fff)
+            hash = (hash ^ (i >> 12)) & 0x3fff;
+    }
+    return hash;
+    // 后续拿到hash值，需要对哈希表大小mod
+}
 
 // 查找符号表中的符号
-Symbol *lookup_symbol(SymbolTable *table, char *name) {
-    // 从当前作用域向上查找
-    while (table != NULL) {
-        for (int i = 0; i < table->size; i++) {
-            // TODO: 初步实现考虑符号表使用数组实现，后续可能会改成Hash
-            Symbol *sym = table->symbols[i];
-            if (sym != NULL && strcmp(sym->name, name) == 0) {
-                return sym;
-            }
+Symbol *lookup_symbol(SymbolTable *table, char *name)
+{
+    unsigned int index = hash_symbol_name(name) % table->size;
+    SymbolTableEntry *entry = table->table[index]; // 这里应该是一个链表
+    // TODO: 考虑作用链的实现
+    while (entry != NULL)
+    {
+        Symbol *sym = entry->symbol;
+        if (strcmp(sym->name, name) == 0)
+        {
+            return sym;
         }
-        table = table->prev;
+        entry = entry->next;
     }
     return NULL; // 符号未定义
 }
 
 // 向符号表中添加符号
-void add_symbol(SymbolTable *table, Symbol *sym) {
-    // 将符号添加到当前作用域的符号表中
-    // TODO: 符号表大小初步实现为动态申请（后续需要重新思考）
-    if (table->size == 0) {
-        table->symbols = (Symbol **) malloc(sizeof(Symbol *) * 16);
-        table->size = 10;
-    } else if (table->size == table->scope) {
-        table->symbols = (Symbol **) realloc(table->symbols, sizeof(Symbol *) * (table->size + 16));
-        table->size += 10;
-    }
-    table->symbols[table->scope - 1] = sym;
+void add_symbol(SymbolTable *table, Symbol *sym)
+{
+    unsigned int index = hash_symbol_name(sym->name) % table->size;
+    // 链表插入过程
+    SymbolTableEntry *entry = (SymbolTableEntry *)malloc(sizeof(SymbolTableEntry));
+    entry->symbol = sym;
+    entry->next = table->table[index];
+    table->table[index] = entry;
 }
 
 // 进入新的作用域
-SymbolTable *enter_scope(SymbolTable *table) {
-    SymbolTable *new_table = (SymbolTable *) malloc(sizeof(SymbolTable));
+SymbolTable *enter_scope(SymbolTable *table)
+{
+    SymbolTable *new_table = (SymbolTable *)malloc(sizeof(SymbolTable));
     new_table->scope = table->scope + 1;
     new_table->prev = table;
     new_table->next = NULL;
-    new_table->size = 0;
-    new_table->symbols = NULL;
+    new_table->size = table->size;
+    new_table->table = (SymbolTableEntry **)calloc(table->size, sizeof(SymbolTableEntry *));
     table->next = new_table;
     return new_table;
 }
 
 // 退出当前作用域
-SymbolTable *exit_scope(SymbolTable *table) {
+SymbolTable *exit_scope(SymbolTable *table)
+{
     SymbolTable *prev_table = table->prev;
-    free(table->symbols);
+    for (int i = 0; i < table->size; i++)
+    {
+        SymbolTableEntry *entry = table->table[i];
+        while (entry != NULL)
+        {
+            SymbolTableEntry *next = entry->next;
+            free(entry);
+            entry = next;
+        }
+    }
+    free(table->table);
     free(table);
     prev_table->next = NULL;
     return prev_table;
+}
+
+// 初始化符号表
+SymbolTable *init_symbol_table(int size)
+{
+    SymbolTable *table = (SymbolTable *)malloc(sizeof(SymbolTable));
+    table->scope = 0;
+    table->prev = NULL;
+    table->next = NULL;
+    table->size = size;
+    table->table = (SymbolTableEntry **)calloc(size, sizeof(SymbolTableEntry *));
+    return table;
+}
+
+// 释放符号表
+void free_symbol_table(SymbolTable *table)
+{
+    while (table != NULL)
+    {
+        SymbolTable *next_table = table->next;
+        exit_scope(table);
+        table = next_table;
+    }
 }
