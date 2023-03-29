@@ -260,6 +260,9 @@ Args: Exp COMMA Args { $$ = newASTNode("Args", @1.first_line, 3, $1, $2, $3); }
 %%
 
 
+ASTNode *ast_root = NULL; // to be initialized in newProgram()
+
+
 ASTNode *newASTNode(const char *name, int lineno, int numChildren, ...)
 {
     ASTNode *node = (ASTNode *)malloc(sizeof(ASTNode));

@@ -39,7 +39,6 @@ typedef struct ASTNode
 ASTNode *newASTNode(const char *name, int lineno, int numChildren, ...);
 void add_child(ASTNode *parent, ASTNode *child);
 
-ASTNode *ast_root = NULL; // to be initialized in newProgram()
 /* global var ast_root will be initialized here*/
 ASTNode *newProgram(int lineno, ASTNode *ExtDefList);
 
