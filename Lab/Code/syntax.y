@@ -229,24 +229,24 @@ Dec: VarDec { $$ = newASTNode("Dec", @1.first_line, 1, $1); }
         };
 
 /* Expressions */
-Exp: Exp ASSIGNOP Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); }
-        | Exp AND Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); }
-        | Exp OR Exp  { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); }
-        | Exp RELOP Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); }
-        | Exp PLUS Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); }
-        | Exp MINUS Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); }
-        | Exp STAR Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); }
-        | Exp DIV Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); }
-        | LP Exp RP { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); }
-        | MINUS Exp %prec UMINUS { $$ = newASTNode("Exp", @1.first_line, 2, $1, $2); }
-        | NOT Exp{ $$ = newASTNode("Exp", @1.first_line, 2, $1, $2); }
-        | ID LP Args RP { $$ = newASTNode("Exp", @1.first_line, 4, $1, $2, $3, $4); }
-        | ID LP RP { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); }
-        | Exp LB Exp RB { $$ = newASTNode("Exp", @1.first_line, 4, $1, $2, $3, $4); }
-        | Exp DOT ID { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); }
-        | ID {  $$ = newASTNode("Exp", @1.first_line, 1, $1); }
-        | INT { $$ = newASTNode("Exp", @1.first_line, 1, $1); }
-        | FLOAT { $$ = newASTNode("Exp", @1.first_line, 1, $1); }
+Exp: Exp ASSIGNOP Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = ASSIGN_EXP;}
+        | Exp AND Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = BINARY_EXP;}
+        | Exp OR Exp  { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = BINARY_EXP;}
+        | Exp RELOP Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3);$$->exp_type = BINARY_EXP;}
+        | Exp PLUS Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = BINARY_EXP;}
+        | Exp MINUS Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = BINARY_EXP;}
+        | Exp STAR Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = BINARY_EXP;}
+        | Exp DIV Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = BINARY_EXP;}
+        | LP Exp RP { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = P_EXP;}
+        | MINUS Exp %prec UMINUS { $$ = newASTNode("Exp", @1.first_line, 2, $1, $2); $$->exp_type = UNARY_EXP;}
+        | NOT Exp{ $$ = newASTNode("Exp", @1.first_line, 2, $1, $2); $$->exp_type = UNARY_EXP;}
+        | ID LP Args RP { $$ = newASTNode("Exp", @1.first_line, 4, $1, $2, $3, $4); $$->exp_type = FUN_EXP;}
+        | ID LP RP { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3);$$->exp_type = FUN_EXP;}
+        | Exp LB Exp RB { $$ = newASTNode("Exp", @1.first_line, 4, $1, $2, $3, $4); $$->exp_type = ARR_EXP;}
+        | Exp DOT ID { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3);$$->exp_type = STRU_EXP;}
+        | ID {  $$ = newASTNode("Exp", @1.first_line, 1, $1);$$->exp_type = ID_EXP;}
+        | INT { $$ = newASTNode("Exp", @1.first_line, 1, $1);$$->exp_type = INT_EXP;}
+        | FLOAT { $$ = newASTNode("Exp", @1.first_line, 1, $1); $$->exp_type = FLOAT_EXP;}
         | error RP { yyerrok; } ;
 
 Args: Exp COMMA Args { $$ = newASTNode("Args", @1.first_line, 3, $1, $2, $3); }
@@ -297,8 +297,12 @@ ASTNode *newProgram(int lineno, ASTNode *ExtDefList)
         Panic("ast_root has been initialized!");
         return NULL;
      }
-     ast_root = newASTNode("Program", lineno, 1, ExtDefList);
-     return ast_root;
+    if (ExtDefList == NULL) {
+        ast_root = NULL;
+    } else {
+        ast_root = newASTNode("Program", lineno, 1, ExtDefList);
+    }
+    return ast_root;
 }
 
 ASTNode *newTYPE(const char* type) {

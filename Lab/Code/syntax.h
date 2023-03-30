@@ -1,39 +1,43 @@
 #ifndef _SYNTAX_H
 #define _SYNTAX_H
 
-#include <stdlib.h>
 #include <stdarg.h>
+#include <stdlib.h>
+
 #include "logger.h"
 /**
  * A data structure for abstract syntax tree
  * TODO: All the struct below is under construction!
  */
-typedef struct value
-{
+typedef struct value {
     char id[32];
-    char type[8]; // int or float
+    char type[8];  // int or float
     unsigned int ival;
     float fval;
 } value_t;
 
 #define MAX_CHILD_N 32
-typedef struct ASTNode
-{
-    int type;   // to indicate a lexical or syntax element
-    int lineno; // line number for syntax unit
+typedef struct ASTNode {
+    int type;    // to indicate a lexical or syntax element
+    int lineno;  // line number for syntax unit
     const char *node_name;
     int child_num;
     struct ASTNode *child_list[MAX_CHILD_N];
-    enum value_type {
-        NONE, 
-        ID_,
-        TYPE_,
-        INT_,
-        FLOAT_
-    }value_type; // whether value is valid, -1 for invalid.
-    value_t value; //  some lexical token(ID、TYPE、INT、FLOAT)'s content
+    enum value_type { NONE, ID_, TYPE_, INT_, FLOAT_ } value_type;  // whether value is valid, -1 for invalid.
+    value_t value;  //  some lexical token(ID、TYPE、INT、FLOAT)'s content
+    enum exp_type {
+        ASSIGN_EXP,  // Exp ASSIGNOP Exp
+        BINARY_EXP,  // Exp AND Exp(etc.)
+        P_EXP,       // LP Exp RP
+        UNARY_EXP,   // MINUS Exp,  NOT Exp
+        FUN_EXP,     // ID LP Args RP, ID LP RP
+        ARR_EXP,     // Exp LB Exp RB
+        STRU_EXP,    // Exp DOT ID
+        ID_EXP,      // ID
+        INT_EXP,     // INT
+        FLOAT_EXP    //  FLOAT
+    } exp_type;      // Type of expression
 } ASTNode;
-
 
 /* fundamental functions */
 ASTNode *newASTNode(const char *name, int lineno, int numChildren, ...);

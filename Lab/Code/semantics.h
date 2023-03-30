@@ -49,11 +49,21 @@ struct ParamList_ {
     ParamList next;  // 下一个参数
 };
 
+typedef struct ArgList_ *ArgList;
+struct ArgList_ {
+    Type type;     // 实参的类型
+    ArgList next;  // 下一个参数
+};
+
 typedef struct symbol {
-    char *name;                    // 符号名字
-    enum SymType symType;          // 符号类型
-    int scope;                     // 符号作用域
-    Type vartype;                  // type=VAR时有效
+    char *name;            // 符号名字
+    enum SymType symType;  // 符号类型
+    int scope;             // 符号作用域
+    int lineno;            // 符号所在行号，只是为了更加报错
+    //------------------------//
+    Type vartype;    // type=VAR时有效
+    int isAssigned;  // type=VAR时有效，是否已经被赋值
+    //------------------------//
     Type returnType;               // type=FUNC时有效，函数返回值类型
     struct ParamList_ *paramList;  // type=FUNC时有效，函数参数列表
     int isFundef;                  // type=FUNC时有效，函数是否定义过
@@ -71,6 +81,21 @@ typedef struct symbol_table {
     int size;                   // 符号表大小
     SymbolTableEntry **table;   // 哈希表
 } SymbolTable;
+
+Type createBasicType(const char *basicTypeStr);
+Type createArrayType(Type elem, int size);
+FieldList createFieldList(char *name, Type type, FieldList tail);
+Type createStructureType(FieldList fields);
+
+ParamList createParamList(char *name, Type type, ParamList next);
+static int isEqualParamList(ParamList p1, ParamList p2);
+
+static inline Symbol *createVarSymbol(char *name, int scope, Type varType, int lineno, int isAssigned);
+static inline Symbol *createFunSymbol(char *fname, int scope, Type returnType, ParamList params, int isFundef,
+                                      int lineno);
+
+// 计算符号名字的哈希值
+static unsigned int hash_symbol_name(const char *name);
 
 // 查找符号表中的符号
 Symbol *lookup_symbol(SymbolTable *table, char *name, int flag, enum SymType symType);
@@ -90,10 +115,49 @@ SymbolTable *init_symbol_table(int size);
 // 释放符号表
 void free_symbol_table(SymbolTable *table);
 
-void sem_error(int type, int lineno, const char *mssg);
+/* High-level definitions */
+void program_handler(ASTNode *program);
+void extDefList_handler(ASTNode *extdeflist);
+void extDef_handler(ASTNode *extdef);
+void extDecList_handler(ASTNode *extdeclist, Type type);
+void function_dec_handler(ASTNode *func_dec);
+void function_def_handler(ASTNode *func_def);
 
 /* Specifiers */
 Type specifier_handler(ASTNode *specifier);
-Type struct_specifier_handler(ASTNode *str_specifier);
+Type structSpecifier_handler(ASTNode *str_specifier);
+
+/* Declarators */
+void varDec_handler(ASTNode *vardec, Type type, int isAssigned);
+void varList_handler(ASTNode *varlist);
+void paramDec_hanlder(ASTNode *paramdec);
+ParamList funDec_handler(ASTNode *fundec);
+
+/* Statements */
+void compst_handler(ASTNode *compst, Type return_type);
+void stmtList_handler(ASTNode *stmtlist);
+void stmt_handler(ASTNode *stmt);
+
+/* Local Definitions */
+void defList_handler(ASTNode *deflist);
+void def_handler(ASTNode *def);
+void decList_handler(ASTNode *declist, Type type);
+void dec_handler(ASTNode *dec, Type type);
+
+/* Expressions */
+
+typedef struct expr {
+    int onlyRight;  // 是否仅仅是右值表达式
+    Type expType;   // 表达式类型
+} ExprRet;
+
+ExprRet exp_handler(ASTNode *exp);
+void args_handler(ASTNode *args);
+
+/* Init */
+void init();
+
+/* Error Reporting */
+void sem_error(int type, int lineno, const char *format, ...);
 
 #endif

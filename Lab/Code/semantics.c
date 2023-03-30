@@ -3,6 +3,7 @@
 #include "logger.h"
 
 static SymbolTable *current_table = NULL;
+static int struct_processing = 0;
 
 // 判断两个Type是否一致
 static int isEqualType(Type t1, Type t2) {
@@ -45,9 +46,9 @@ Type createBasicType(const char *basicTypeStr) {
     Type newType = (Type)malloc(sizeof(struct Type_));
     newType->kind = BASIC;
 
-    if (strcmp(basicTypeStr, "INT") == 0) {
+    if (strcmp(basicTypeStr, "int") == 0) {
         newType->u.basic = INT;
-    } else if (strcmp(basicTypeStr, "FLOAT") == 0) {
+    } else if (strcmp(basicTypeStr, "float") == 0) {
         newType->u.basic = FLOAT;
     } else {
         // Error handling
@@ -74,12 +75,28 @@ Type createStructureType(FieldList fields) {
     return newType;
 }
 
-FieldList create_FieldList(char *name, Type type, FieldList tail) {
+FieldList createFieldList(char *name, Type type, FieldList tail) {
     FieldList newField = (FieldList)malloc(sizeof(struct FieldList_));
     newField->name = name;
     newField->type = type;
     newField->tail = tail;
     return newField;
+}
+
+Type find_field(Type struct_type, const char *field_name) {
+    if (struct_type == NULL || struct_type->kind != STRUCTURE) {
+        return NULL;  // 如果不是结构体或者指针为空，则返回NULL
+    }
+
+    FieldList fields = struct_type->u.structure;
+    while (fields) {
+        if (strcmp(fields->name, field_name) == 0) {
+            return fields->type;  // 找到指定的域，返回它的类型
+        }
+        fields = fields->tail;  // 继续查找下一个域
+    }
+
+    return NULL;  // 如果没有找到指定的域，则返回NULL
 }
 
 ParamList createParamList(char *name, Type type, ParamList next) {
@@ -90,16 +107,40 @@ ParamList createParamList(char *name, Type type, ParamList next) {
     return paramList;
 }
 
-static inline Symbol *createVarSymbol(char *name, int scope, Type varType) {
+static int isEqualParamList(ParamList p1, ParamList p2) {
+    // 如果两个指针本身相等，它们指向的内容也一定相等
+    if (p1 == p2) {
+        return 1;
+    }
+    // 如果其中一个指针为 NULL，它们不相等
+    if (p1 == NULL || p2 == NULL) {
+        return 0;
+    }
+    // 递归比较每一个参数的类型是否相等
+    if (!isEqualType(p1->type, p2->type)) {
+        return 0;
+    }
+    // 如果p1和p2都没有下一个参数，它们相等
+    if (p1->next == NULL && p2->next == NULL) {
+        return 1;
+    }
+    // 递归比较下一个参数
+    return isEqualParamList(p1->next, p2->next);
+}
+
+static inline Symbol *createVarSymbol(char *name, int scope, Type varType, int lineno, int isAssigned) {
     Symbol *varsym = (Symbol *)malloc(sizeof(Symbol));
     varsym->name = name;
     varsym->symType = VAR;
     varsym->scope = scope;
     varsym->vartype = varType;
+    varsym->lineno = lineno;
+    varsym->isAssigned = isAssigned;
     return varsym;
 }
 
-static inline Symbol *createFunSymbol(char *fname, int scope, Type returnType, ParamList params, int isFundef) {
+static inline Symbol *createFunSymbol(char *fname, int scope, Type returnType, ParamList params, int isFundef,
+                                      int lineno) {
     Symbol *funsym = (Symbol *)malloc(sizeof(Symbol));
     funsym->name = fname;
     funsym->scope = scope;
@@ -107,6 +148,8 @@ static inline Symbol *createFunSymbol(char *fname, int scope, Type returnType, P
     funsym->returnType = returnType;
     funsym->paramList = params;
     funsym->isFundef = isFundef;
+    funsym->lineno = lineno;
+    return funsym;
 }
 // 计算符号名字的哈希值
 static unsigned int hash_symbol_name(const char *name) {
@@ -209,9 +252,25 @@ void init() {
 
 // ========================================================================== //
 /* High-level definitions */
-void program_handler(ASTNode *program) { extDefList_handler(program->child_list[0]); }
+void program_handler(ASTNode *program) {
+    if (program == NULL) return;
+    init();
+    extDefList_handler(program->child_list[0]);
+    Panic_on(current_table->scope != 0, "Invalid Scope!");
+    for (int i = 0; i < current_table->size; i++) {
+        SymbolTableEntry *entry = current_table->table[i];
+        while (entry != NULL) {
+            Symbol *sym = entry->symbol;
+            if (sym->symType == FUNC && sym->isFundef == 0) {
+                sem_error(18, sym->lineno, "Undefined function \"%s\"", sym->name);
+            }
+            entry = entry->next;
+        }
+    }
+}
 
 void extDefList_handler(ASTNode *extdeflist) {
+    Log("%s", extdeflist->node_name);
     if (extdeflist->child_num == 1) {
         extDef_handler(extdeflist->child_list[0]);
     } else {
@@ -225,11 +284,11 @@ void extDef_handler(ASTNode *extdef) {
         // Specifier ExtDecList SEMI(全局变量声明)
         Type type = specifier_handler(extdef->child_list[0]);
         extDecList_handler(extdef->child_list[1], type);
-    } else if (extdef->child_num == 1) {
+    } else if (extdef->child_num == 2) {
         // Specifier SEMI(结构体变量声明)
         Type type = specifier_handler(extdef->child_list[0]);
     } else {
-        char *chd_name = extdef->child_list[0]->node_name;
+        const char *chd_name = extdef->child_list[0]->node_name;
         Panic_on(extdef->child_num != 1, "ExtDef");
         if (strcmp("Function_Declaration", chd_name) == 0) {
             // Function_Declaration(函数声明)
@@ -245,11 +304,11 @@ void extDef_handler(ASTNode *extdef) {
 void extDecList_handler(ASTNode *extdeclist, Type type) {
     if (extdeclist->child_num == 1) {
         // ExtDecList -> Vardec
-        varDec_handler(extdeclist->child_list[0], type);
+        varDec_handler(extdeclist->child_list[0], type, 0);
     } else {
         // ExtDecList -> Vardec COMMA ExtDecList
         Panic_on(extdeclist->child_num != 3, "ExtDecList");
-        varDec_handler(extdeclist->child_list[0], type);
+        varDec_handler(extdeclist->child_list[0], type, 0);
         extDecList_handler(extdeclist->child_list[2], type);
     }
 }
@@ -281,7 +340,7 @@ void function_dec_handler(ASTNode *func_dec) {
         }
     } else {
         // 说明此前尚未有过该函数的声明或者定义，需要插入表
-        fsym = createFunSymbol(fname, current_table->scope, returnType, params, 0);
+        fsym = createFunSymbol(fname, current_table->scope, returnType, params, 0, func_dec->lineno);
         add_symbol(current_table, fsym);
     }
 }
@@ -313,10 +372,13 @@ void function_def_handler(ASTNode *func_def) {
             sem_error(19, func_def->lineno,
                       "The return value type or the number or type of formal parameters of a function with the same "
                       "name are inconsistent");
+        } else {
+            // 如果函数定义没有冲突
+            fsym->isFundef = 1;
         }
     } else {
         // 说明此前尚未有过该函数的声明或者定义，需要插入表
-        fsym = createFunSymbol(fname, current_table->scope, returnType, params, 1);
+        fsym = createFunSymbol(fname, current_table->scope, returnType, params, 1, func_def->lineno);
         add_symbol(current_table, fsym);
     }
 }
@@ -333,11 +395,11 @@ Type specifier_handler(ASTNode *specifier) {
     if (!strcmp(child->node_name, "TYPE")) {  // Specifier -> TYPE
         return createBasicType(child->value.type);
     } else {  // Specifier -> StructSpecifier
-        return struct_specifier_handler(child);
+        return structSpecifier_handler(child);
     }
 }
 
-Type struct_specifier_handler(ASTNode *str_specifier) {
+Type structSpecifier_handler(ASTNode *str_specifier) {
     Type ret = NULL;
     if (str_specifier->child_num == 2) {
         // StructSpecifier -> STRUCT Tag ，Tag的子节点为ID
@@ -352,16 +414,21 @@ Type struct_specifier_handler(ASTNode *str_specifier) {
     } else {
         // StructSpecifier -> Struct OptTag LC DefList RC
         current_table = enter_scope(current_table);
+        struct_processing = 1;  // 全局变量表示当前正在分析结构体，防止与错误类型3冲突
         defList_handler(str_specifier->child_list[3]);
         FieldList fields = NULL;
+        ret = createStructureType(fields);
         for (int i = 0; i < current_table->size; i++) {
             SymbolTableEntry *entry = current_table->table[i];
             while (entry != NULL) {
                 Symbol *sym = entry->symbol;
-                fields = create_FieldList(sym->name, sym->vartype, fields);
+                if (find_field(ret, sym->name)) {
+                    sem_error(15, sym->lineno, "Redefined field \"%s\"", sym->name);
+                }
+                ret->u.structure = createFieldList(sym->name, sym->vartype, ret->u.structure);
+                entry = entry->next;
             }
         }
-        ret = createStructureType(fields);
         current_table = exit_scope(current_table);
         Panic_on(current_table->scope != 0, "Struct Specifier");
         if (str_specifier->child_num == 5) {
@@ -371,9 +438,10 @@ Type struct_specifier_handler(ASTNode *str_specifier) {
             if (sym) {
                 // 错误类型16：结构体名字与前面定义过的结构体或者变量的名字重复
                 sem_error(16, str_specifier->lineno,
-                          "The structure name duplicates the name of a previously defined structure or variable");
+                          "The structure \"%s\" duplicates the name of a previously defined structure or variable",
+                          sym->name);
             } else {
-                sym = create_Symbol(stru_name, VAR, current_table->scope, ret);
+                sym = createVarSymbol(stru_name, current_table->scope, ret, str_specifier->lineno, 0);
                 add_symbol(current_table, sym);
             }
         }
@@ -383,29 +451,28 @@ Type struct_specifier_handler(ASTNode *str_specifier) {
 
 // ========================================================================== //
 /* Declarators */
-void varDec_handler(ASTNode *vardec, Type type) {
+void varDec_handler(ASTNode *vardec, Type type, int isAssigned) {
     /**
-     * 将变量与类型进行绑定,注意这里是变量的定义
+     * 将变量与类型进行绑定,注意这里是变量的定义, isAssigned表示后面有没有跟Assign操作（赋初值）
      */
     Panic_on(strcmp("VarDec", vardec->node_name), "Vardec");
     if (vardec->child_num == 1) {
         // VarDec -> ID
         char *var_name = vardec->child_list[0]->value.id;
         Symbol *sym = lookup_symbol(current_table, var_name, 0, VAR);
-        if (sym) {  // 变量重复定义
-            sem_error(3, vardec->lineno, "Variable Duplicate Definition");
+        if (sym && !struct_processing) {  // 变量重复定义
+            sem_error(3, vardec->lineno, "Redefined Variable \"%s\"", sym->name);
             return;
         }
-        sym = (Symbol *)malloc(sizeof(Symbol));
-        sym->vartype = VAR;
-        sym->vartype = type;
+        sym = createVarSymbol(var_name, current_table->scope, type, vardec->lineno, isAssigned);
         add_symbol(current_table, sym);
     } else {
         // VarDec -> VarDec LB INT RB
-        Panic_on(vardec->child_num != 4);
+        Panic_on(vardec->child_num != 4, "VarDec");
         int arr_size = vardec->child_list[2]->value.ival;
         Type newtype = createArrayType(type, arr_size);
-        varDec_handler(vardec->child_list[0], newtype);  // 这里非常巧妙地使用了递归调用，最后肯定会解析到VarDec->ID
+        varDec_handler(vardec->child_list[0], newtype,
+                       isAssigned);  // 这里非常巧妙地使用了递归调用，最后肯定会解析到VarDec->ID
     }
 }
 
@@ -424,34 +491,13 @@ void varList_handler(ASTNode *varlist) {
 void paramDec_hanlder(ASTNode *paramdec) {
     // ParamDec -> Specifier VarDec
     Panic_on(strcmp("ParamDec", paramdec->node_name), "ParamDec");
-    Type *vartype = specifier_handler(paramdec->child_list[0]);
-    varDec_handler(paramdec->child_list[1], vartype);
-}
-
-static int isEqualParamList(ParamList p1, ParamList p2) {
-    // 如果两个指针本身相等，它们指向的内容也一定相等
-    if (p1 == p2) {
-        return 1;
-    }
-    // 如果其中一个指针为 NULL，它们不相等
-    if (p1 == NULL || p2 == NULL) {
-        return 0;
-    }
-    // 递归比较每一个参数的类型是否相等
-    if (!isEqualType(p1->type, p2->type)) {
-        return 0;
-    }
-    // 如果p1和p2都没有下一个参数，它们相等
-    if (p1->next == NULL && p2->next == NULL) {
-        return 1;
-    }
-    // 递归比较下一个参数
-    return isEqualParamList(p1->next, p2->next);
+    Type vartype = specifier_handler(paramdec->child_list[0]);
+    varDec_handler(paramdec->child_list[1], vartype, 0);
 }
 
 ParamList funDec_handler(ASTNode *fundec) {
     /**
-     * 提取出参数，返回ParamList
+     * 提取出参数，返回ParamList(注意保持有序性)
      *    FunDec -> ID LP VarList RP
      *           | ID LP RP
      */
@@ -464,6 +510,7 @@ ParamList funDec_handler(ASTNode *fundec) {
         while (entry != NULL) {
             Symbol *sym = entry->symbol;
             params = createParamList(sym->name, sym->vartype, params);  // 链表的插入
+            entry = entry->next;
         }
     }
     return params;
@@ -479,8 +526,14 @@ void compst_handler(ASTNode *compst, Type return_type) {
     // Stmt中的CompSt并不要求能够感知到外部变量（进入此函数前currentTable表项为空）
 
     //  CompSt -> LC DefList StmtList RC
-    defList_handler(compst->child_list[1]);
-    stmtList_handler(compst->child_list[2]);
+    // 注意到这里DefList和StmtList任意一个都可能是空节点
+    for (int i = 0; i < compst->child_num; i++) {
+        const char *chname = compst->child_list[i]->node_name;
+        if (strcmp(chname, "DefList") == 0)
+            defList_handler(compst->child_list[i]);
+        else if (strcmp(chname, "StmtList") == 0)
+            stmtList_handler(compst->child_list[i]);
+    }
 }
 
 void stmtList_handler(ASTNode *stmtlist) {
@@ -492,7 +545,15 @@ void stmtList_handler(ASTNode *stmtlist) {
         stmtList_handler(stmtlist->child_list[1]);
     }
 }
-void stmt_handler(ASTNode *stmt) { Panic("TODO"); }
+void stmt_handler(ASTNode *stmt) {
+    if (stmt->child_num == 2) {
+        // Stmt -> Exp SEMI
+        exp_handler(stmt->child_list[0]);
+    } else {
+        // TODO:
+        Panic("TODO:");
+    }
+}
 
 // ========================================================================== //
 /* Local Definitions */
@@ -530,19 +591,151 @@ void decList_handler(ASTNode *declist, Type type) {
 void dec_handler(ASTNode *dec, Type type) {
     if (dec->child_num == 1) {
         // Dec -> VarDec
-        varDec_handler(dec->child_list[0], type);
+        varDec_handler(dec->child_list[0], type, 0);
     } else {
         // Dec -> VarDec ASSIGNOP Exp
-        // TODO: 待实现
+        varDec_handler(dec->child_list[0], type, 1);
+        ExprRet ret = exp_handler(dec->child_list[2]);
+        if (!isEqualType(type, ret.expType)) {
+            sem_error(5, dec->lineno, "Type mismatched for assignment.");
+        }
     }
 }
 
 // ========================================================================== //
+
 /* Expressions */
-void exp_handler(ASTNode *exp) { Panic("TODO:"); }
+ExprRet exp_handler(ASTNode *exp) {
+    /**
+     * 返回值为Int,如果为0表示只有右值的表达式
+     * expType需要返回调用者，以便告诉上层调用者当前表达式的Type
+     */
+    ExprRet ret = {-1, NULL};
+    switch (exp->exp_type) {
+        case ASSIGN_EXP: {
+            ExprRet r1 = exp_handler(exp->child_list[0]);
+            ExprRet r2 = exp_handler(exp->child_list[2]);
+            if (r1.expType != NULL && !isEqualType(r1.expType, r2.expType)) {
+                sem_error(5, exp->lineno, "Type mismatched for assignment");
+            }
+            if (r1.onlyRight) {
+                sem_error(6, exp->lineno, "The left-hand side of an assignment must be a variable");
+            }
+            ret.expType = r1.expType;
+            ret.onlyRight = 0;
+            break;
+        }
+        case BINARY_EXP: {
+            ExprRet r1 = exp_handler(exp->child_list[0]);
+            ExprRet r2 = exp_handler(exp->child_list[2]);
+            if (!isEqualType(r1.expType, r2.expType) || r1.expType->kind != BASIC) {
+                // 左右两边的操作数类型不匹配；或者类型不是基本类型
+                sem_error(7, exp->lineno, "Type mismatched for operands");
+            }
+            ret.expType = r1.expType;
+            ret.onlyRight = 1;
+            break;
+        }
+        case P_EXP: {  // LP EXP RP，ret和Type都取决于中间的Exp
+            ret = exp_handler(exp->child_list[1]);
+            break;
+        }
+        case UNARY_EXP: {  // MINUS/NOT EXP
+            ret = exp_handler(exp->child_list[1]);
+            ret.onlyRight = 1;
+            if (ret.expType == NULL || ret.expType->kind != BASIC) {
+                // 类型不是基本类型
+                sem_error(7, exp->lineno, "Type mismatched for operands");
+            }
+            break;
+        }
+        case FUN_EXP: {
+            Panic("TODO:");
+            char *func_name = exp->child_list[0]->value.id;
 
-void args_handler(ASTNode *args) { Panic("TODO:"); }
+            Symbol *sym1 = lookup_symbol(current_table, func_name, 1, VAR);
+            if (sym1) {
+                sem_error(11, exp->lineno, "\"%s\" is not a function", func_name);
+            } else {
+                Symbol *sym2 = lookup_symbol(current_table, func_name, 1, FUNC);
+                if (!sym2) {
+                    // 错误类型2：函数在调用时未经定义
+                    sem_error(2, exp->lineno, "Undefined function \"%s\"", func_name);
+                } else {
+                    // TODO: 提取实参的类型（列表）
+                    ret.expType = sym2->returnType;
+                    ret.onlyRight = 1;
+                }
+            }
+            break;
+        }
+        case ARR_EXP: {
+            ExprRet r1 = exp_handler(exp->child_list[0]);
+            ExprRet r2 = exp_handler(exp->child_list[2]);
+            if (r1.expType == NULL || r1.expType->kind != ARRAY) {
+                // 错误类型10：对非数组行变量不能使用[...]访问
+                sem_error(10, exp->lineno, "Cannot use array indexing with a non-array type variable");
+            } else {
+                // 如果是数组类型，记得取出elem的类型
+                ret.expType = r1.expType->u.array.elem;
+            }
+            if (exp->child_list[2]->exp_type != INT_EXP) {
+                // 错误类型12: 数组访问操作符[...]中出现非整数
+                sem_error(12, exp->lineno, "Array index must be an integer");
+            }
+            ret.onlyRight = 0;
+            break;
+        }
+        case STRU_EXP: {
+            const char *filed_name = exp->child_list[2]->value.id;
+            ExprRet r = exp_handler(exp->child_list[0]);
+            if (r.expType == NULL || r.expType->kind != STRUCTURE) {
+                sem_error(13, exp->lineno, "Illegal use of \".\"");
+            } else {
+                ret.expType = find_field(r.expType, filed_name);
+                if (ret.expType == NULL) sem_error(14, exp->lineno, "Non-existent field \"n\"");
+            }
+            ret.onlyRight = 0;
+            break;
+        }
+        case ID_EXP: {
+            char *id_name = exp->child_list[0]->value.id;
+            Symbol *sym = lookup_symbol(current_table, id_name, 1, VAR);
+            if (!sym) {
+                sem_error(1, exp->lineno, "Undefined variable \"%s\"", id_name);
+            } else {
+                ret.expType = sym->vartype;
+            }
+            ret.onlyRight = 0;
+            break;
+        }
+        case INT_EXP: {
+            ret.expType = createBasicType("int");
+            ret.onlyRight = 1;
+            break;
+        }
+        case FLOAT_EXP: {
+            ret.expType = createBasicType("float");
+            ret.onlyRight = 1;
+            break;
+        }
+        default:
+            Panic("Invalid Exp Type!");
+    }
+    return ret;
+}
 
-void sem_error(int type, int lineno, const char *mssg) {
-    fprintf(stdout, "Error type %d at Line %d: %s.\n", type, lineno, mssg);
-} /* errors reporting */
+void args_handler(ASTNode *args) {
+    if (args->child_num == 1) {
+    }
+    Panic("TODO:");
+}
+
+void sem_error(int type, int lineno, const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    fprintf(stdout, "Error type %d at Line %d: ", type, lineno);
+    vfprintf(stdout, format, args);
+    fprintf(stdout, ".\n");
+    va_end(args);
+}

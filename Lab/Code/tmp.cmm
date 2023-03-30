@@ -1,6 +1,6 @@
 int f();
-int f() {
-
+int f(int i) {
+    int i;
 }
 int main() {
     
