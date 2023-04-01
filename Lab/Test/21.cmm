@@ -1,15 +1,12 @@
-struct Temp1 {
+int func() 
+{
+    int i = 10;
+    return i;
+}
+
+int main() 
+{
     int i;
-    float j;
-};
-
-struct Temp2 {
-    int x;
-    float y;
-};
-
-int main() {
-    struct Temp1 t1;
-    struct Temp2 t2;
-    t1 = t2;
+    int i, j;
+    i = func();
 }

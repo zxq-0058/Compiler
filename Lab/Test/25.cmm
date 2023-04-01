@@ -1,0 +1,14 @@
+int i;
+
+int f() {}
+struct A{
+    int i; //  
+    int f;
+};
+
+int i;
+
+int main() {
+    struct A x;
+    x.f = 1;
+}

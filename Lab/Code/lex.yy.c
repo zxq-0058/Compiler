@@ -1043,7 +1043,7 @@ YY_RULE_SETUP
 #line 141 "./lexical.l"
 {
     char c = input();
-    while(c != '\n')c = input();
+    while(c && c != -1 && c != '\n')c = input();
 }
 	YY_BREAK
 case 31:

@@ -7,6 +7,5 @@ int func()
 int main() 
 {
     int i;
-    int i, j;
     i = func();
 }

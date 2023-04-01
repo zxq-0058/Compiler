@@ -2,18 +2,20 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Lab1_debug",
+            "name": "Lab2_debug",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/Code/parser",
             "args": [
-                "./Test/15.cmm"
+                // "./Test/4.cmm"
+                // "./Code/tmp.cmm"
+                "./Strict_Test/Lab2_Normal/tests/ZZ03.cmm"
             ],
             "stopAtEntry": true,
             "cwd": "${workspaceFolder}",
             "miDebuggerPath": "/usr/bin/gdb",
             "MIMode": "gdb",
-            "preLaunchTask": "Lab1_build"
+            "preLaunchTask": "Lab2_build"
         }
     ]
 }

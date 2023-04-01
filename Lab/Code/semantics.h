@@ -39,7 +39,7 @@ struct FieldList_ {
 /**
  * 符号表的定义
  */
-enum SymType { VAR, FUNC };
+enum SymType { VAR, FUNC, STRUCT };
 
 typedef struct ParamList_ *ParamList;
 
@@ -57,9 +57,9 @@ struct ArgList_ {
 
 typedef struct symbol {
     char *name;            // 符号名字
-    enum SymType symType;  // 符号类型
+    enum SymType symType;  // 符号类型： =VAR, FUNC, STRUCTURE
     int scope;             // 符号作用域
-    int lineno;            // 符号所在行号，只是为了更加报错
+    int lineno;            // 符号所在行号，只是为了更好的报错
     //------------------------//
     Type vartype;    // type=VAR时有效
     int isAssigned;  // type=VAR时有效，是否已经被赋值
@@ -67,6 +67,8 @@ typedef struct symbol {
     Type returnType;               // type=FUNC时有效，函数返回值类型
     struct ParamList_ *paramList;  // type=FUNC时有效，函数参数列表
     int isFundef;                  // type=FUNC时有效，函数是否定义过
+    // ----------------------- //
+    Type structType;  // type=STRUCTURE时有效，结构体类型
 } Symbol;
 
 typedef struct symbol_table_entry {
@@ -82,13 +84,16 @@ typedef struct symbol_table {
     SymbolTableEntry **table;   // 哈希表
 } SymbolTable;
 
+static int isEqualType(Type t1, Type t2);
 Type createBasicType(const char *basicTypeStr);
 Type createArrayType(Type elem, int size);
 FieldList createFieldList(char *name, Type type, FieldList tail);
 Type createStructureType(FieldList fields);
 
-ParamList createParamList(char *name, Type type, ParamList next);
+void appendParamList(ParamList *paramList, char *name, Type type);
 static int isEqualParamList(ParamList p1, ParamList p2);
+void appendArgList(ArgList *arglist, Type type);
+int compareArgListParamList(ArgList argList, ParamList paramList);
 
 static inline Symbol *createVarSymbol(char *name, int scope, Type varType, int lineno, int isAssigned);
 static inline Symbol *createFunSymbol(char *fname, int scope, Type returnType, ParamList params, int isFundef,
@@ -128,21 +133,23 @@ Type specifier_handler(ASTNode *specifier);
 Type structSpecifier_handler(ASTNode *str_specifier);
 
 /* Declarators */
-void varDec_handler(ASTNode *vardec, Type type, int isAssigned);
-void varList_handler(ASTNode *varlist);
-void paramDec_hanlder(ASTNode *paramdec);
+
+Symbol *varDec_handler(ASTNode *vardec, Type type, int isAssigned);
+void varList_handler(ASTNode *varlist, ParamList *params);
+Symbol *paramDec_hanlder(ASTNode *paramdec);
 ParamList funDec_handler(ASTNode *fundec);
 
 /* Statements */
+// 考虑到需要处理return语句，因此需要上层调用者FuncDec_hanlder()告诉CompSt合法的返回类型
 void compst_handler(ASTNode *compst, Type return_type);
-void stmtList_handler(ASTNode *stmtlist);
-void stmt_handler(ASTNode *stmt);
+void stmtList_handler(ASTNode *stmtlist, Type return_type);
+void stmt_handler(ASTNode *stmt, Type return_type);
 
 /* Local Definitions */
-void defList_handler(ASTNode *deflist);
-void def_handler(ASTNode *def);
-void decList_handler(ASTNode *declist, Type type);
-void dec_handler(ASTNode *dec, Type type);
+void defList_handler(ASTNode *deflist, FieldList *fields);
+void def_handler(ASTNode *def, FieldList *fields);
+void decList_handler(ASTNode *declist, Type type, FieldList *fields);
+Symbol *dec_handler(ASTNode *dec, Type type);
 
 /* Expressions */
 
@@ -152,7 +159,7 @@ typedef struct expr {
 } ExprRet;
 
 ExprRet exp_handler(ASTNode *exp);
-void args_handler(ASTNode *args);
+void args_handler(ASTNode *args, ArgList *arglist);
 
 /* Init */
 void init();

@@ -140,7 +140,7 @@ WHITE_SPACE    [ \t\f\r\v]+
 
 "//"       {
     char c = input();
-    while(c != '\n')c = input();
+    while(c && c != -1 && c != '\n')c = input();
 }
 
 "/*"   {BEGIN(COMMENT);}
