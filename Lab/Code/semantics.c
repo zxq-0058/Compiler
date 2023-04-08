@@ -528,8 +528,6 @@ Type structSpecifier_handler(ASTNode *str_specifier) {
                           "The structure \"%s\" duplicates the name of a previously defined structure or variable",
                           stru_name);
             } else {
-                sym = ;
-
                 if (sym == NULL)
                     sym = createStructureSymbol(stru_name, global_table->scope, ret, str_specifier->lineno);
                 add_symbol(global_table, sym);
