@@ -757,6 +757,7 @@ ExprRet exp_handler(ASTNode *exp) {
     ExprRet ret = {-1, NULL};
     switch (exp->exp_type) {
         case ASSIGN_EXP: {
+            // Exp -> Exp ASSIGNOP Exp
             ExprRet r1 = exp_handler(exp->child_list[0]);
             ExprRet r2 = exp_handler(exp->child_list[2]);
             if (r1.expType != NULL && !isEqualType(r1.expType, r2.expType)) {
@@ -770,6 +771,7 @@ ExprRet exp_handler(ASTNode *exp) {
             break;
         }
         case BINARY_EXP: {
+            // Exp -> Exp AND/OR/RELOP/etc. Exp
             ExprRet r1 = exp_handler(exp->child_list[0]);
             ExprRet r2 = exp_handler(exp->child_list[2]);
             if (!isEqualType(r1.expType, r2.expType) || r1.expType->kind != BASIC) {
