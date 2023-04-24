@@ -44,6 +44,13 @@ extract:
 
 test:
 	./parser ../Test/test1.cmm
+
+test4: parser
+	./parser ../Test/tmp.cmm out.txt
+
+test5: parser
+	./parser ../Test/5.cmm ../irsim/5.ir
+
 clean:
 	rm -f parser lex.yy.c syntax.tab.c syntax.tab.h syntax.output
 	rm -f $(OBJS) $(OBJS:.o=.d)

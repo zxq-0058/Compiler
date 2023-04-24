@@ -37,6 +37,15 @@ typedef struct ASTNode {
         INT_EXP,     // INT
         FLOAT_EXP    //  FLOAT
     } exp_type;      // Type of expression
+    enum {
+        BI_PLUS,
+        BI_MINUS,
+        BI_STAR,
+        BI_DIV,
+        BI_AND,
+        BI_OR,
+        BI_RELOP,
+    } bi_type;  // use for lab3, binary exp type
 } ASTNode;
 
 /* fundamental functions */

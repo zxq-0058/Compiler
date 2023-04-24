@@ -1,0 +1,70 @@
+FUNCTION dot_product :
+PARAM v1
+PARAM v2
+PARAM v3
+v4 := #0
+LABEL label1 :
+IF v4 < #10 GOTO label2
+GOTO label3
+LABEL label2 :
+t8 := v4 * #4
+t4 := v1 + t8
+t13 := v4 * #4
+t14 := v2 + t13
+t9 := *t14
+t17 := v4 * #4
+t18 := v3 + t17
+t10 := *t18
+t5 := t9 * t10
+*t4 := t5
+t20 := v4 + #1
+v4 := t20
+GOTO label1
+LABEL label3 :
+RETURN #0
+FUNCTION main :
+DEC v5 40
+DEC v6 40
+DEC v7 40
+v8 := #0
+v9 := #0
+v10 := #9
+LABEL label4 :
+IF v8 <= v10 GOTO label5
+GOTO label6
+LABEL label5 :
+t31 := &v5
+t33 := v8 * #4
+t29 := t31 + t33
+*t29 := v8
+t36 := &v6
+t38 := v8 * #4
+t34 := t36 + t38
+t35 := v10 - v8
+*t34 := t35
+t42 := v8 + #1
+v8 := t42
+GOTO label4
+LABEL label6 :
+t45 := &v7
+t46 := &v5
+t47 := &v6
+ARG t47
+ARG t46
+ARG t45
+t48 := CALL dot_product
+v8 := #0
+LABEL label7 :
+IF v8 <= v10 GOTO label8
+GOTO label9
+LABEL label8 :
+t54 := &v7
+t56 := v8 * #4
+t57 := t54 + t56
+t53 := *t57
+WRITE t53
+t59 := v8 + #1
+v8 := t59
+GOTO label7
+LABEL label9 :
+RETURN #0

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "intercode.h"
 #include "logger.h"
 #include "semantics.h"
 extern ASTNode *ast_root;
@@ -13,20 +14,23 @@ extern int syntax_error;
 // extern int yydebug;
 
 int main(int argc, char **argv) {
-    if (argc <= 1) {
+    if (argc <= 2) {
+        fprintf(stderr, "Usage: %s <input> <output>）\n", argv[0]);
         return 1;
     }
-    FILE *f = fopen(argv[1], "r");
-    if (!f) {
+    FILE *in = fopen(argv[1], "r");
+    FILE *out = fopen(argv[2], "w");
+    if (!in || !out) {
         perror(argv[1]);
         return 1;
     }
-    yyrestart(f);
+    yyrestart(in);
     // yydebug = 1;
     yyparse();
     if (!lexical_error && !syntax_error) {
         // print_AST();
         program_handler(ast_root);
+        translate_program(ast_root, out);
     }
     return 0;
 }

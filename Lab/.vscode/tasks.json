@@ -4,7 +4,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Lab2_build", // 自行命名
+            "label": "Lab3_build", // 自行命名
             "type": "shell",
             "isBackground": true,
             "command": "./build.sh", // 运行我们创建好的debug脚本, 编译出parser

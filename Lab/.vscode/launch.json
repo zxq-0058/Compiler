@@ -2,20 +2,22 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Lab2_debug",
+            "name": "Lab3_debug",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/Code/parser",
             "args": [
-                // "./Test/4.cmm"
+                // "./Test/tmp.cmm",
+                "./Test/6.cmm",
+                "./Code/out.txt"
                 // "./Code/tmp.cmm"
-                "./Strict_Test/Lab2_Normal/tests/ZZ03.cmm"
+                // "./Strict_Test/Lab2_Normal/tests/ZZ03.cmm"
             ],
             "stopAtEntry": true,
             "cwd": "${workspaceFolder}",
             "miDebuggerPath": "/usr/bin/gdb",
             "MIMode": "gdb",
-            "preLaunchTask": "Lab2_build"
+            "preLaunchTask": "Lab3_build"
         }
     ]
 }

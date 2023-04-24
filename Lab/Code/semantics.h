@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "intercode.h"
 #include "logger.h"
 #include "syntax.h"
 
@@ -27,6 +28,7 @@ struct Type_ {
         } array;
         FieldList structure;
     } u;
+    int memSize;  // 该类型占用的内存大小
 };
 
 struct FieldList_ {
@@ -69,6 +71,8 @@ typedef struct symbol {
     int isFundef;                  // type=FUNC时有效，函数是否定义过
     // ----------------------- //
     Type structType;  // type=STRUCTURE时有效，结构体类型
+    // ----------------------- //
+    struct Operand_ *operand;  // 用于中间代码生成，每一个符号都与一个operand唯一绑定
 } Symbol;
 
 typedef struct symbol_table_entry {
@@ -84,6 +88,8 @@ typedef struct symbol_table {
     SymbolTableEntry **table;   // 哈希表
 } SymbolTable;
 
+int match(ASTNode *node, int num, ...);
+
 static int isEqualType(Type t1, Type t2);
 Type createBasicType(const char *basicTypeStr);
 Type createArrayType(Type elem, int size);
@@ -95,9 +101,8 @@ static int isEqualParamList(ParamList p1, ParamList p2);
 void appendArgList(ArgList *arglist, Type type);
 int compareArgListParamList(ArgList argList, ParamList paramList);
 
-static inline Symbol *createVarSymbol(char *name, int scope, Type varType, int lineno, int isAssigned);
-static inline Symbol *createFunSymbol(char *fname, int scope, Type returnType, ParamList params, int isFundef,
-                                      int lineno);
+Symbol *createVarSymbol(char *name, int scope, Type varType, int lineno, int isAssigned);
+Symbol *createFunSymbol(char *fname, int scope, Type returnType, ParamList params, int isFundef, int lineno);
 
 // 计算符号名字的哈希值
 static unsigned int hash_symbol_name(const char *name);
@@ -115,8 +120,7 @@ SymbolTable *enter_scope(SymbolTable *table);
 SymbolTable *exit_scope(SymbolTable *table);
 
 // 初始化符号表
-SymbolTable *init_symbol_table(int size);
-
+SymbolTable *init_symbol_table(int size, int scope);
 // 释放符号表
 void free_symbol_table(SymbolTable *table);
 

@@ -10,5 +10,8 @@
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "ms-vscode.cpptools",
     "C_Cpp.clang_format_fallbackStyle": "{ BasedOnStyle: Google, IndentWidth: 4, ColumnLimit: 120 }",
-    "C_Cpp.errorSquiggles": "enabled"
+    "C_Cpp.errorSquiggles": "enabled",
+    "files.associations": {
+        "syntax.h": "c"
+    }
 }

@@ -2,11 +2,13 @@
 
 #include "logger.h"
 
-static SymbolTable *current_table = NULL;
-static SymbolTable *global_table = NULL;
+SymbolTable *current_table = NULL;
+SymbolTable *global_table = NULL;
 static int struct_depth = 0;
 
-// 判断两个Type是否一致
+/**
+ * @brief 判断两个类型是否相等
+ */
 static int isEqualType(Type t1, Type t2) {
     if (t1 == NULL || t2 == NULL) {
         return 0;  // 如果其中一个指针为 NULL，它们不相等
@@ -40,10 +42,14 @@ static int isEqualType(Type t1, Type t2) {
     }
 }
 
+/**
+ * @brief 创建基本Type
+ * @param basicTypeStr 基本类型字符串: "int" || "float"
+ */
 Type createBasicType(const char *basicTypeStr) {
     Type newType = (Type)malloc(sizeof(struct Type_));
     newType->kind = BASIC;
-
+    newType->memSize = 4;
     if (strcmp(basicTypeStr, "int") == 0) {
         newType->u.basic = INT;
     } else if (strcmp(basicTypeStr, "float") == 0) {
@@ -58,14 +64,24 @@ Type createBasicType(const char *basicTypeStr) {
     return newType;
 }
 
+/**
+ * @brief 创建数组Type
+ * @param elem 数组元素的类型
+ * @param size 数组大小
+ */
 Type createArrayType(Type elem, int size) {
     Type newType = (Type)malloc(sizeof(struct Type_));
     newType->kind = ARRAY;
     newType->u.array.elem = elem;
     newType->u.array.size = size;
+    newType->memSize = size * elem->memSize;
     return newType;
 }
 
+/**
+ * @brief 创建结构体Type
+ * @param fields 结构体域列表
+ */
 Type createStructureType(FieldList fields) {
     Type newType = (Type)malloc(sizeof(struct Type_));
     newType->kind = STRUCTURE;
@@ -73,6 +89,12 @@ Type createStructureType(FieldList fields) {
     return newType;
 }
 
+/**
+ * @brief 创建FieldList，返回新创建的域
+ * @param name 域名
+ * @param type 域类型
+ * @param tail 下一个域
+ */
 FieldList createFieldList(char *name, Type type, FieldList tail) {
     FieldList newField = (FieldList)malloc(sizeof(struct FieldList_));
     newField->name = name;
@@ -81,6 +103,13 @@ FieldList createFieldList(char *name, Type type, FieldList tail) {
     return newField;
 }
 
+/**
+ * @brief 在*old之后插入新的一个新的域(name, type)
+ * @param name 域名
+ * @param type 域类型
+ * @param old 原域列表（当old == NULL时无效；当*old ==
+ * NULL时，old被修改为新的域的地址；其它情况同样修改old为新的域的地址）
+ */
 void insertFieldList(char *name, Type type, FieldList *old) {
     if (old == NULL) return;
     FieldList new_node = (FieldList)malloc(sizeof(struct FieldList_));
@@ -90,12 +119,21 @@ void insertFieldList(char *name, Type type, FieldList *old) {
     if (*old == NULL) {
         *old = new_node;
     } else {
-        new_node->tail = *old;
-        *old = new_node;
+        FieldList last = *old;
+        while (last->tail != NULL) {
+            last = last->tail;
+        }
+        last->tail = new_node;
     }
 }
 
-Type find_field(Type struct_type, const char *field_name) {
+/**
+ * @brief 在结构体中查找是否含有给定的域
+ * @param struct_type 结构体类型
+ * @param field_name 域名
+ * @return 如果找到，返回域的类型；否则返回NULL
+ */
+Type findField(Type struct_type, const char *field_name) {
     if (struct_type == NULL || struct_type->kind != STRUCTURE) {
         return NULL;  // 如果不是结构体或者指针为空，则返回NULL
     }
@@ -200,7 +238,15 @@ int compareArgListParamList(ArgList argList, ParamList paramList) {
     return 1;
 }
 
-static inline Symbol *createVarSymbol(char *name, int scope, Type varType, int lineno, int isAssigned) {
+/**
+ * @brief 创建一个变量符号
+ * @param name 变量名
+ * @param scope 变量作用域
+ * @param varType 变量类型
+ * @param lineno 变量所在行号
+ * @param isAssigned 变量是否被赋初值
+ */
+Symbol *createVarSymbol(char *name, int scope, Type varType, int lineno, int isAssigned) {
     Symbol *varsym = (Symbol *)malloc(sizeof(Symbol));
     varsym->name = name;
     varsym->symType = VAR;
@@ -211,8 +257,17 @@ static inline Symbol *createVarSymbol(char *name, int scope, Type varType, int l
     return varsym;
 }
 
-static inline Symbol *createFunSymbol(char *fname, int scope, Type returnType, ParamList params, int isFundef,
-                                      int lineno) {
+/**
+ * @brief 创建一个函数符号
+ * @param fname 函数名
+ * @param scope 函数作用域：只能是0
+ * @param returnType 函数返回值类型
+ * @param params 函数参数列表: ParamList类型
+ * @param isFundef 函数是否有定义
+ * @param lineno 函数所在行号
+ * @return 函数符号
+ */
+Symbol *createFunSymbol(char *fname, int scope, Type returnType, ParamList params, int isFundef, int lineno) {
     Symbol *funsym = (Symbol *)malloc(sizeof(Symbol));
     funsym->name = fname;
     funsym->scope = scope;
@@ -224,6 +279,14 @@ static inline Symbol *createFunSymbol(char *fname, int scope, Type returnType, P
     return funsym;
 }
 
+/**
+ * @brief 创建一个结构体符号
+ * @param name 结构体名
+ * @param scope 结构体作用域：只能是0
+ * @param structType 结构体类型
+ * @param lineno 结构体所在行号
+ * @return 结构体符号
+ */
 static inline Symbol *createStructureSymbol(char *name, int scope, Type structType, int lineno) {
     Symbol *structsym = (Symbol *)malloc(sizeof(Symbol));
     structsym->name = name;
@@ -273,19 +336,23 @@ void add_symbol(SymbolTable *table, Symbol *sym) {
     table->table[index] = entry;
 }
 
-// 进入新的作用域
+/**
+ * @brief 进入新的作用域
+ * @param table 当前符号表
+ * @return 新的符号表
+ */
 SymbolTable *enter_scope(SymbolTable *table) {
-    SymbolTable *new_table = (SymbolTable *)malloc(sizeof(SymbolTable));
-    new_table->scope = table->scope + 1;
+    SymbolTable *new_table = init_symbol_table(table->size, table->scope + 1);
     new_table->prev = table;
-    new_table->next = NULL;
-    new_table->size = table->size;
-    new_table->table = (SymbolTableEntry **)calloc(table->size, sizeof(SymbolTableEntry *));
     table->next = new_table;
     return new_table;
 }
 
-// 退出当前作用域
+/**
+ * @brief 退出当前作用域
+ * @param table 当前符号表
+ * @return 上一层的符号表
+ */
 SymbolTable *exit_scope(SymbolTable *table) {
     SymbolTable *prev_table = table->prev;
     for (int i = 0; i < table->size; i++) {
@@ -302,10 +369,14 @@ SymbolTable *exit_scope(SymbolTable *table) {
     return prev_table;
 }
 
-// 初始化符号表
-SymbolTable *init_symbol_table(int size) {
+/**
+ * @brief 初始化符号表
+ * @param size 哈希表大小
+ * @param scope 作用域
+ */
+SymbolTable *init_symbol_table(int size, int scope) {
     SymbolTable *table = (SymbolTable *)malloc(sizeof(SymbolTable));
-    table->scope = 0;
+    table->scope = scope;
     table->prev = NULL;
     table->next = NULL;
     table->size = size;
@@ -323,26 +394,67 @@ void free_symbol_table(SymbolTable *table) {
 }
 
 /**
- * 语义分析之前的初始化操作
+ * @brief 语义分析之前调用，初始化符号表,同时加入read和write函数
  */
 void init() {
-    current_table = (SymbolTable *)malloc(sizeof(SymbolTable));
-    current_table->scope = 0;
-    current_table->prev = current_table->next = NULL;
-    current_table->size = 128;
-    current_table->table = (SymbolTableEntry **)calloc(current_table->size, sizeof(SymbolTableEntry *));
-    global_table = current_table;
+    global_table = current_table = init_symbol_table(128, 0);
+    Log("Initialize Symbol Table for Semantic Analysis!");
+    Symbol *read = createFunSymbol("read", 0, createBasicType("int"), NULL, 1, 0);
+    ParamList param = (ParamList *)malloc(sizeof(ParamList));
+    param->type = createBasicType("int");
+    Symbol *write = createFunSymbol("write", 0, createBasicType("int"), param, 1, 0);
+
+    add_symbol(global_table, read);
+    add_symbol(global_table, write);
 }
 
+/**
+ * @brief 判断一个节点是否符合某一个模式，比如 match(extDef, 3, "ExtDef", "Specifier", "ExtDecList")
+ * @param node 节点
+ * @param num 模式字符串的个数
+ * @param ... 模式
+ * @return 是否符合，1为符合，0为不符合
+ */
+int match(ASTNode *node, int num, ...) {
+    // 获得可变参数的个数
+    va_list args;
+    va_start(args, num);
+    char *parent = va_arg(args, char *);
+    if (strcmp(node->node_name, parent) != 0) {
+        Panic("Invalid Pattern!");
+        va_end(args);
+        return 0;
+    }
+
+    if (node->child_num != num - 1) {
+        va_end(args);
+        return 0;
+    }
+
+    for (int i = 0; i < node->child_num; i++) {
+        char *pattern = va_arg(args, char *);
+        if (strcmp(node->child_list[i]->node_name, pattern) != 0) {
+            va_end(args);
+            return 0;
+        }
+    }
+    return 1;
+}
 // ========================================================================== //
 /* High-level definitions */
+
+/**
+ * @brief 语义分析入口
+ * @param program 语法分析得到的抽象语法树
+ */
 void program_handler(ASTNode *program) {
     if (program == NULL) return;
     init();
     // Program -> ExtDefList
     extDefList_handler(program->child_list[0]);
+    Panic_on(current_table->scope != 0, "Invalid Scope! Scope should be 0!");  // 结束语法树遍历之后作用域恢复到全局
+
     // 符号表插入完毕，检查函数是否定义
-    Panic_on(current_table->scope != 0, "Invalid Scope!");
     for (int i = 0; i < current_table->size; i++) {
         SymbolTableEntry *entry = current_table->table[i];
         while (entry != NULL) {
@@ -356,61 +468,76 @@ void program_handler(ASTNode *program) {
     }
 }
 
+/**
+ * @brief 处理ExtDefList节点：ExtDefList -> ExtDef ExtDefList
+ */
 void extDefList_handler(ASTNode *extdeflist) {
-    Log("%s", extdeflist->node_name);
-    if (extdeflist->child_num == 1) {
+    if (match(extdeflist, 2, "ExtDefList", "ExtDef")) {
         // ExtDefList -> ExtDef
         extDef_handler(extdeflist->child_list[0]);
     } else {
         // ExtDefList -> ExtDef ExtDefList
+        Panic_on(extdeflist->child_num != 2, "Invalid ExtDefList!");
         extDef_handler(extdeflist->child_list[0]);
         extDefList_handler(extdeflist->child_list[1]);
     }
 }
 
+/**
+ * @brief 处理ExtDef节点：ExtDef -> Specifier ExtDecList SEMI || Specifier SEMI || Specifier Function_Declaration ||
+ * Specifier Function_Definition
+ */
 void extDef_handler(ASTNode *extdef) {
-    if (extdef->child_num == 3) {
+    if (match(extdef, 3, "ExtDef", "Specifier", "ExtDecList")) {
         // Specifier ExtDecList SEMI(全局变量声明)
         // 每一个Specifier都会生成一个Type(基本类型或者是结构体类型)
         Type type = specifier_handler(extdef->child_list[0]);
         extDecList_handler(extdef->child_list[1], type);
-    } else if (extdef->child_num == 2) {
+    } else if (match(extdef, 3, "ExtDef", "Specifier", "SEMI")) {
         // Specifier SEMI(结构体变量声明)
         Type type = specifier_handler(extdef->child_list[0]);
     } else {
         const char *chd_name = extdef->child_list[0]->node_name;
         Panic_on(extdef->child_num != 1, "ExtDef");
-        if (strcmp("Function_Declaration", chd_name) == 0) {
+        if (match(extdef, 2, "ExtDef", "Function_Declaration")) {
             // Function_Declaration(函数声明)
             function_dec_handler(extdef->child_list[0]);
         } else {
             // Function_Definition(函数定义)
-            Panic_on(strcmp("Function_Definition", chd_name), "ExtDef");
+            Panic_on(match(extdef, 2, "ExtDef", "Function_Definition") == 0, "ExtDef");
             function_def_handler(extdef->child_list[0]);
         }
     }
 }
 
+/**
+ * @brief 处理ExtDecList节点：ExtDecList -> VarDec || ExtDecList -> VarDec COMMA ExtDecList
+ */
 void extDecList_handler(ASTNode *extdeclist, Type type) {
-    if (extdeclist->child_num == 1) {
+    if (match(extdeclist, 2, "ExtDecList", "VarDec")) {
         // ExtDecList -> Vardec
         varDec_handler(extdeclist->child_list[0], type, 0);
     } else {
         // ExtDecList -> Vardec COMMA ExtDecList
-        Panic_on(extdeclist->child_num != 3, "ExtDecList");
+        Panic_on(match(extdeclist, 4, "ExtDecList", "Vardec", "COMMA", "ExtDecList") == 0, "ExtDecList");
         varDec_handler(extdeclist->child_list[0], type, 0);
         extDecList_handler(extdeclist->child_list[2], type);
     }
 }
 
+/**
+ * 处理function_dec节点：
+ * Function_Declaration -> Specifier FunDec SEMI.
+ * 处理函数声明：
+ * 1. 查表
+ * 2. 如果不为空，检查函数返回值，参数是否一致
+ * 3. 如果为空，插入符号
+ * @param {ASTNode} func_dec - function_dec节点
+ * @returns {void}
+ */
 void function_dec_handler(ASTNode *func_dec) {
-    /**
-     * 处理函数声明 Function_Declaration -> Specifier FunDec SEMI
-     * （1）查表
-     * （2）如果不为空，检查函数返回值，参数是否一致
-     * （3）如果为空，插入符号
-     */
-    Panic_on(strcmp("Function_Declaration", func_dec->node_name), "Invalid Node");
+    Panic_on(match(func_dec, 4, "Function_Declaration", "Specifier", "FunDec", "SEMI") == 0, "Function_Declaration");
+
     char *fname = func_dec->child_list[1]->child_list[0]->value.id;  // 函数名
     Log("FunName :%s", fname);
 
@@ -419,7 +546,7 @@ void function_dec_handler(ASTNode *func_dec) {
     ParamList params = funDec_handler(func_dec->child_list[1]);    // 提取参数列表
     current_table = exit_scope(current_table);  // 由于是函数声明因此直接退出函数参数对应的作用域
 
-    Symbol *fsym = lookup_symbol(current_table, fname, 1, FUNC);
+    Symbol *fsym = lookup_symbol(global_table, fname, 0, FUNC);
     if (fsym != NULL) {
         // 说明此前进行过函数的声明或者定义，需要检查函数的返回值、参数列表是否一致
         if (!isEqualType(fsym->returnType, returnType) || !isEqualParamList(fsym->paramList, params)) {
@@ -435,32 +562,33 @@ void function_dec_handler(ASTNode *func_dec) {
     }
 }
 
+/**
+ * @brief 处理Function_Definition节点：Function_Definition -> Specifier FunDec CompSt
+ * @param {ASTNode} func_def - Function_Definition节点
+ */
 void function_def_handler(ASTNode *func_def) {
-    /**
-     * 处理函数定义：Function_Definition -> Specifier FunDec CompSt
-     */
+    Panic_on(match(func_def, 4, "Function_Definition", "Specifier", "FunDec", "CompSt") == 0, "Function_Definition");
+
     Type returnType = specifier_handler(func_def->child_list[0]);    // 函数返回值类型
     char *fname = func_def->child_list[1]->child_list[0]->value.id;  // 函数名
     Log("FunName :%s", fname);
 
     // 创建临时作用域将参数提取出来
     current_table = enter_scope(current_table);
-    // Fundec的产生式为：FunDec -> ID LP VarList RP | ID LP RP 比如: int foo(int a, int b) 或者 int foo()
     ParamList params = funDec_handler(func_def->child_list[1]);
     Symbol *fsym = lookup_symbol(current_table, fname, 1, FUNC);
     if (fsym != NULL) {
         if (fsym->isFundef) {
             // 错误类型4：函数出现重复定义
             sem_error(4, func_def->lineno, "Duplicate definition of function");
-        }
-        // 说明此前进行过函数的声明，需要检查函数的返回值、参数列表是否一致
-        else if (!isEqualType(fsym->returnType, returnType) || !isEqualParamList(fsym->paramList, params)) {
+        } else if (!isEqualType(fsym->returnType, returnType) || !isEqualParamList(fsym->paramList, params)) {
+            // 说明此前进行过函数的声明，需要检查函数的返回值、参数列表是否一致
             // 错误类型19：同名函数的返回值类型或者形参数量或者形参类型不一致
             sem_error(19, func_def->lineno,
                       "The return value type or the number or type of formal parameters of a function with the same "
                       "name are inconsistent");
         } else {
-            // 如果函数定义没有冲突
+            // 如果函数定义没有冲突,则将函数定义标记置为1
             fsym->isFundef = 1;
         }
     } else {
@@ -477,21 +605,25 @@ void function_def_handler(ASTNode *func_def) {
 /* Specifiers */
 
 /**
- * 给定一个Specifier节点，返回该节点的值类型（Type指针）
- * 这个Type指针可以用于跟在后面的变量的类型绑定
+ * @brief 处理Specifier节点：Specifier -> TYPE || StructSpecifier
+ * @param {ASTNode} specifier - Specifier节点
+ * @returns {Type} - 返回Specifier对应的Type
  */
 Type specifier_handler(ASTNode *specifier) {
     ASTNode *child = specifier->child_list[0];
-    if (!strcmp(child->node_name, "TYPE")) {  // Specifier -> TYPE
+    if (match(specifier, 2, "Specifier", "TYPE")) {  // Specifier -> TYPE
         return createBasicType(child->value.type);
     } else {  // Specifier -> StructSpecifier
         return structSpecifier_handler(child);
     }
 }
 
+/**
+ * @brief 处理StructSpecifier节点：StructSpecifier -> STRUCT OptTag LC DefList RC || StructSpecifier -> STRUCT Tag
+ */
 Type structSpecifier_handler(ASTNode *str_specifier) {
     Type ret = NULL;
-    if (str_specifier->child_num == 2) {
+    if (match(str_specifier, 3, "StructSpecifier", "STRUCT", "Tag")) {
         // StructSpecifier -> STRUCT Tag ，Tag的子节点为ID
         // 这种情况算是结构体的使用, 比如 struct X a; 这里X为之前定义过的结构体的名字
         char *stru_name = str_specifier->child_list[1]->child_list[0]->value.id;
@@ -512,28 +644,24 @@ Type structSpecifier_handler(ASTNode *str_specifier) {
                                 &ret->u.structure);  // 处理结构体的域，由于是引用传递，所以fields会被修改
             }
         }
-
         struct_depth--;
         Panic_on(struct_depth < 0, "struct_depth error");
-        // Panic_on(current_table->scope != 0, "Struct Specifier");
+        current_table = exit_scope(current_table);  // 退出临时作用域
+
         if (strcmp(str_specifier->child_list[1]->node_name, "OptTag") == 0) {
             // 说明OptTag不为空，此时需要考虑加入符号表
             char *stru_name = str_specifier->child_list[1]->child_list[0]->value.id;
-            Symbol *sym = lookup_symbol(global_table, stru_name, 1, STRUCT);
+            Symbol *sym1 = lookup_symbol(global_table, stru_name, 1, STRUCT);
             Symbol *sym2 = lookup_symbol(global_table, stru_name, 1, VAR);
-            current_table = exit_scope(current_table);  // 退出临时作用域
-            if (sym || sym2) {
+            if (sym1 || sym2) {
                 // 错误类型16：结构体名字与前面定义过的结构体或者变量的名字重复
                 sem_error(16, str_specifier->lineno,
                           "The structure \"%s\" duplicates the name of a previously defined structure or variable",
                           stru_name);
             } else {
-                if (sym == NULL)
-                    sym = createStructureSymbol(stru_name, global_table->scope, ret, str_specifier->lineno);
-                add_symbol(global_table, sym);
+                sym1 = createStructureSymbol(stru_name, global_table->scope, ret, str_specifier->lineno);
+                add_symbol(global_table, sym1);
             }
-        } else {
-            current_table = exit_scope(current_table);  // 退出临时作用域
         }
     }
     return ret;
@@ -542,13 +670,16 @@ Type structSpecifier_handler(ASTNode *str_specifier) {
 // ========================================================================== //
 /* Declarators */
 
-// 加入符号表，同时返回变量对应的symbol
+/**
+ * @brief 将变量(Var)与类型进行绑定，并返回Symbol
+ * @param
+ *
+ */
 Symbol *varDec_handler(ASTNode *vardec, Type type, int isAssigned) {
     /**
      * 将变量与类型进行绑定,注意这里是变量的定义, isAssigned表示后面有没有跟Assign操作（赋初值）
      */
-    Panic_on(strcmp("VarDec", vardec->node_name), "Vardec");
-    if (vardec->child_num == 1) {
+    if (match(vardec, 2, "VarDec", "ID")) {
         // VarDec -> ID
         char *var_name = vardec->child_list[0]->value.id;
         // 先在全局的表里面查找是否有同名的结构体
@@ -567,16 +698,18 @@ Symbol *varDec_handler(ASTNode *vardec, Type type, int isAssigned) {
             sem_error(15, vardec->lineno, "Redefined field \"%s\" in the structure", sym->name);
             return sym;
         }
+
         sym = createVarSymbol(var_name, current_table->scope, type, vardec->lineno, isAssigned);
         add_symbol(current_table, sym);
         if (isAssigned && struct_depth) {
             // 结构体中的域定义时赋初值
             sem_error(15, vardec->lineno, "The field \"%s\" in the structure is initialized", sym->name);
         }
+
         return sym;
     } else {
         // VarDec -> VarDec LB INT RB
-        Panic_on(vardec->child_num != 4, "VarDec");
+        Panic_on(match(vardec, 5, "VarDec", "VarDec", "LB", "INT", "RB") == 0, "VarDec");
         int arr_size = vardec->child_list[2]->value.ival;  // 注意这里是从右往左解析
         Type newtype = createArrayType(type, arr_size);
         return varDec_handler(vardec->child_list[0], newtype,
@@ -584,35 +717,41 @@ Symbol *varDec_handler(ASTNode *vardec, Type type, int isAssigned) {
     }
 }
 
-// 通过调用ParamDec_handler()解析参数，注意到VarList只出现在FunDec产生式中
+/**
+ * @note 通过调用ParamDec_handler()解析参数，注意到VarList只出现在FunDec产生式中
+ */
 void varList_handler(ASTNode *varlist, ParamList *params) {
-    if (varlist->child_num == 1) {
+    if (match(varlist, 2, "VarList", "ParamDec")) {
         // VarList -> ParamDec
         Symbol *sym = paramDec_hanlder(varlist->child_list[0]);  // 获得某个形式参数的symbol
         appendParamList(params, sym->name, sym->vartype);        // 将形式参数append到参数列表中
     } else {
         // VarList -> ParamDec COMMA VarList
-        Panic_on(varlist->child_num != 3, "VarList");
+        Panic_on(match(varlist, 4, "VarList", "ParamDec", "COMMA", "VarList") == 0, "VarList");
         Symbol *sym = paramDec_hanlder(varlist->child_list[0]);  // 获得某个形式参数的symbol
         appendParamList(params, sym->name, sym->vartype);        // 将形式参数append到参数列表中
         varList_handler(varlist->child_list[2], params);
     }
 }
 
+/**
+ *
+ */
 Symbol *paramDec_hanlder(ASTNode *paramdec) {
     // ParamDec -> Specifier VarDec
-    Panic_on(strcmp("ParamDec", paramdec->node_name), "ParamDec");
+    Panic_on(match(paramdec, 3, "ParamDec", "Specifier", "VarDec") == 0, "ParamDec");
     Type vartype = specifier_handler(paramdec->child_list[0]);
     return varDec_handler(paramdec->child_list[1], vartype, 0);
 }
 
+/**
+ * @brief 返回参数列表（ParamList）
+ * @note 提取出参数，返回ParamList(注意保持有序性);
+ *    FunDec -> ID LP VarList RP
+ *           | ID LP RP
+ */
 ParamList funDec_handler(ASTNode *fundec) {
-    /**
-     * 提取出参数，返回ParamList(注意保持有序性)
-     *    FunDec -> ID LP VarList RP
-     *           | ID LP RP
-     */
-    ParamList params = NULL;  // 不太确定
+    ParamList params = NULL;
     if (fundec->child_num == 4) {
         varList_handler(fundec->child_list[2], &params);
     }
@@ -621,12 +760,14 @@ ParamList funDec_handler(ASTNode *fundec) {
 
 // ========================================================================== //
 /* Statements */
-
+/**
+ * @brief CompSt处理函数，需要由上层函数告知返回类型（可能为NULL）
+ * @note 在调用此函数之前，请确保已经调用了enter_scope()函数, 同样在处理完成之后，也需要调用者手动退出当前作用域。
+ * 这是因为有两种情况：
+ * （1）函数定义中的CompSt要求能够感知到函数参数列表的内容，因此我们调用funDec_handler()会将作用域表填好一部分
+ * （2）Stmt中的CompSt并不要求能够感知到外部变量（进入此函数前currentTable表项为空）
+ */
 void compst_handler(ASTNode *compst, Type return_type) {
-    // 在调用此函数之前，请确保已经调用了enter_scope()函数, 同样在处理完成之后，也需要调用者手动退出当前作用域
-    // 这是因为有两种情况：
-    // 函数定义中的CompSt要求能够感知到函数参数列表的内容，因此我们调用funDec_handler()会将作用域表填好一部分
-    // Stmt中的CompSt并不要求能够感知到外部变量（进入此函数前currentTable表项为空）
     Panic_ON(strcmp("CompSt", compst->node_name), "CompSt");
     //  CompSt -> LC DefList StmtList RC
     // 注意到这里DefList和StmtList任意一个都可能是空节点
@@ -639,47 +780,50 @@ void compst_handler(ASTNode *compst, Type return_type) {
     }
 }
 
+/**
+ * @brief StmtList处理函数，需要由上层函数(调用者)告知返回类型（可能为NULL）
+ */
 void stmtList_handler(ASTNode *stmtlist, Type return_type) {
-    Panic_on(strcmp("StmtList", stmtlist->node_name), "StmtList");
-    if (stmtlist->child_num == 1) {  // StmtList -> Stmt
+    if (match(stmtlist, 2, "StmtList", "Stmt")) {  // StmtList -> Stmt
         stmt_handler(stmtlist->child_list[0], return_type);
     } else {  // StmtList -> Stmt StmtList
         stmt_handler(stmtlist->child_list[0], return_type);
         stmtList_handler(stmtlist->child_list[1], return_type);
     }
 }
+
+/**
+ * @brief Stmt处理函数，需要调用者告知返回类型（可能为NULL）
+ */
 void stmt_handler(ASTNode *stmt, Type return_type) {
-    Panic_on(strcmp("Stmt", stmt->node_name), "Stmt");
-    if (stmt->child_num == 1) {
+    if (match(stmt, 2, "Stmt", "CompSt")) {
         // Stmt -> CompSt
         current_table = enter_scope(current_table);
         compst_handler(stmt->child_list[0], return_type);
         current_table = exit_scope(current_table);
-    } else if (stmt->child_num == 2) {
+    } else if (match(stmt, 3, "Stmt", "Exp", "SEMI")) {
         // Stmt -> Exp SEMI
         exp_handler(stmt->child_list[0]);
-    } else if (stmt->child_num == 3) {
+    } else if (match(stmt, 4, "Stmt", "RETURN", "Exp", "SEMI")) {
         // Stmt -> RETURN Exp SEMI
         ExprRet r = exp_handler(stmt->child_list[1]);
         if (!isEqualType(return_type, r.expType)) {
             sem_error(8, stmt->lineno, "Type mismatched for return");
         }
-    } else if (stmt->child_num == 5) {
-        if (strcmp("IF", stmt->child_list[0]->node_name)) {
-            // Stmt ->  IF LP Exp RP Stmt
-            ExprRet r = exp_handler(stmt->child_list[2]);
-            if (r.expType == NULL || r.expType->kind != BASIC || r.expType->u.basic != INT) {
-                sem_error(7, stmt->lineno, "Type mismatched for IF");
-            }
-            stmt_handler(stmt->child_list[4], return_type);
-        } else {
-            // Stmt -> WHILE LP Exp RP Stmt
-            ExprRet r = exp_handler(stmt->child_list[2]);
-            if (r.expType == NULL || r.expType->kind != BASIC || r.expType->u.basic != INT) {
-                sem_error(7, stmt->lineno, "Type mismatched for WHILE");
-            }
-            stmt_handler(stmt->child_list[4], return_type);
+    } else if (match(stmt, 6, "Stmt", "IF", "LP", "Exp", "RP", "Stmt")) {
+        // Stmt ->  IF LP Exp RP Stmt
+        ExprRet r = exp_handler(stmt->child_list[2]);
+        if (r.expType == NULL || r.expType->kind != BASIC || r.expType->u.basic != INT) {
+            sem_error(7, stmt->lineno, "Type mismatched for IF");
         }
+        stmt_handler(stmt->child_list[4], return_type);
+    } else if (match(stmt, 6, "Stmt", "WHILE", "LP", "Exp", "RP", "Stmt")) {
+        // Stmt -> WHILE LP Exp RP Stmt
+        ExprRet r = exp_handler(stmt->child_list[2]);
+        if (r.expType == NULL || r.expType->kind != BASIC || r.expType->u.basic != INT) {
+            sem_error(7, stmt->lineno, "Type mismatched for WHILE");
+        }
+        stmt_handler(stmt->child_list[4], return_type);
     } else {
         // Stmt -> IF LP Exp RP Stmt ELSE Stmt
         ExprRet r = exp_handler(stmt->child_list[2]);
@@ -694,9 +838,12 @@ void stmt_handler(ASTNode *stmt, Type return_type) {
 // ========================================================================== //
 /* Local Definitions */
 
+/**
+ * @brief DefList处理函数，fields由上层函数传递
+ * @param
+ */
 void defList_handler(ASTNode *deflist, FieldList *fields) {
-    Panic_on(strcmp("DefList", deflist->node_name), "DefList");
-    if (deflist->child_num == 1) {
+    if (match(deflist, 2, "DefList", "Def")) {
         // DefList -> Def
         def_handler(deflist->child_list[0], fields);
     } else {
@@ -844,7 +991,7 @@ ExprRet exp_handler(ASTNode *exp) {
             if (r.expType == NULL || r.expType->kind != STRUCTURE) {
                 sem_error(13, exp->lineno, "Illegal use of \".\"");
             } else {
-                ret.expType = find_field(r.expType, filed_name);
+                ret.expType = findField(r.expType, filed_name);
                 if (ret.expType == NULL) sem_error(14, exp->lineno, "Non-existent field \"n\"");
             }
             ret.onlyRight = 0;

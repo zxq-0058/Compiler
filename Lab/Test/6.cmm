@@ -1,5 +1,11 @@
-int main()
-{
-    int i;
-    10 = i;
+// 本测试用来检查参数顺序问题
+int print(int a, int b) {
+    write(a);
+    write(b);
+    return 0;
+}
+
+int main(){
+    print(1, 2);
+    return 0;
 }

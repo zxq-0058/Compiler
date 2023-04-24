@@ -1,5 +1,34 @@
-int main()
-{
-    float j = 1.7;
-    return j;
+int bubble_sort(int a[10]) {
+    int i = 0, j = 0, temp = 0;
+    int n = 10;  // 数组元素个数
+
+    while (i < n - 1) {  // 最多进行n-1趟排序
+        j = 0;
+        while (j < n - 1 - i) {  // 每趟排序确定最后一个元素，因此每趟比较的元素个数递减
+            if (a[j] > a[j + 1]) {  // 如果前一个元素大于后一个元素，交换它们的位置
+                temp = a[j];
+                a[j] = a[j + 1];
+                a[j + 1] = temp;
+            }
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+
+    return 0;
+}
+
+int main() {
+    int a[10], i, n = 10;
+    while(i < n) {
+        a[i] = n - i;
+        i = i + 1;
+    }
+    bubble_sort(a);
+    i = 0;
+    while(i < n) {
+       write(a[i]);
+        i = i + 1;
+    }
+    return 0;
 }

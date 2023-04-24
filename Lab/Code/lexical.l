@@ -77,7 +77,7 @@ WHITE_SPACE    [ \t\f\r\v]+
 {SEMI}     { yylval.ast_node = newSEMI(); return SEMI;}
 {COMMA}    { yylval.ast_node = newCOMMA(); return COMMA;}
 {ASSIGNOP} { yylval.ast_node = newOperator(ASSIGNOP); return ASSIGNOP;}
-{RELOP}    { yylval.ast_node = newOperator(RELOP); return RELOP;}
+{RELOP}    { yylval.ast_node = newOperator(RELOP); strcpy(yylval.ast_node->value.id, yytext); return RELOP;}
 {PLUS}     { yylval.ast_node = newOperator(PLUS); return PLUS;}
 {MINUS}    { yylval.ast_node = newOperator(MINUS); return MINUS;}
 {STAR}     { yylval.ast_node = newOperator(STAR); return STAR;}

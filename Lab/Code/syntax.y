@@ -230,13 +230,13 @@ Dec: VarDec { $$ = newASTNode("Dec", @1.first_line, 1, $1); }
 
 /* Expressions */
 Exp: Exp ASSIGNOP Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = ASSIGN_EXP;}
-        | Exp AND Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = BINARY_EXP;}
-        | Exp OR Exp  { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = BINARY_EXP;}
-        | Exp RELOP Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3);$$->exp_type = BINARY_EXP;}
-        | Exp PLUS Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = BINARY_EXP;}
-        | Exp MINUS Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = BINARY_EXP;}
-        | Exp STAR Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = BINARY_EXP;}
-        | Exp DIV Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = BINARY_EXP;}
+        | Exp AND Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = BINARY_EXP; $$->bi_type = BI_AND; }
+        | Exp OR Exp  { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = BINARY_EXP; $$->bi_type = BI_OR; }
+        | Exp RELOP Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3);$$->exp_type = BINARY_EXP; }
+        | Exp PLUS Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = BINARY_EXP; $$->bi_type = BI_PLUS;}
+        | Exp MINUS Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = BINARY_EXP; $$->bi_type = BI_MINUS;}
+        | Exp STAR Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = BINARY_EXP; $$->bi_type = BI_STAR;}
+        | Exp DIV Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = BINARY_EXP; $$->bi_type = BI_DIV;}
         | LP Exp RP { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = P_EXP;}
         | MINUS Exp %prec UMINUS { $$ = newASTNode("Exp", @1.first_line, 2, $1, $2); $$->exp_type = UNARY_EXP;}
         | NOT Exp{ $$ = newASTNode("Exp", @1.first_line, 2, $1, $2); $$->exp_type = UNARY_EXP;}

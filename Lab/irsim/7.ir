@@ -1,0 +1,48 @@
+FUNCTION sum :
+PARAM v1
+PARAM v2
+v4 := #0
+LABEL label1 :
+IF v3 < #10 GOTO label2
+GOTO label3
+LABEL label2 :
+t12 := v3 * #4
+t13 := v1 + t12
+t8 := *t13
+t16 := v3 * #4
+t17 := v2 + t16
+t9 := *t17
+t7 := t8 + t9
+t5 := v4 + t7
+v4 := t5
+t19 := v3 + #1
+v3 := t19
+GOTO label1
+LABEL label3 :
+RETURN v4
+FUNCTION main :
+DEC v5 40
+DEC v6 40
+LABEL label4 :
+IF v7 < #10 GOTO label5
+GOTO label6
+LABEL label5 :
+t27 := &v5
+t29 := v7 * #4
+t25 := t27 + t29
+*t25 := v7
+t32 := &v6
+t34 := v7 * #4
+t30 := t32 + t34
+*t30 := v7
+t36 := v7 + #1
+v7 := t36
+GOTO label4
+LABEL label6 :
+t40 := &v5
+t41 := &v6
+ARG t41
+ARG t40
+t39 := CALL sum
+WRITE t39
+RETURN #0
