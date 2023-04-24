@@ -6,24 +6,27 @@ Type translate_specifier(ASTNode *specifier);
 Type translate_structspecifier(ASTNode *str_specifier);
 Type translate_exp(ASTNode *exp, Operand place);
 Type exp_array(ASTNode *exp, Operand place);
+Type exp_struct(ASTNode *exp, Operand place);
 //============================================================================================================================//
 
 extern SymbolTable *current_table;
 extern SymbolTable *global_table;
+static int struct_depth = 0;  // 判断结构体嵌套层数
 
 /// @brief 给定一个类型，返回其内存大小，这一步在将符号插入符号表时会完成
 /// @note 基本类型占用4个字节，数组类型占用elem->memSize * size个字节，结构体类型占用所有域的大小之和
 int calculateMemSize(Type t) {
+    if (t->memSize != 0) return t->memSize;
     switch (t->kind) {
         case BASIC:
             return sizeof(int);  // 假设基本类型都占用4个字节
         case ARRAY:
-            return t->u.array.elem->memSize * t->u.array.size;
+            return calculateMemSize(t->u.array.elem) * t->u.array.size;
         case STRUCTURE: {
             int size = 0;
             FieldList f = t->u.structure;
             while (f) {
-                size += f->type->memSize;
+                size += calculateMemSize(f->type);
                 f = f->tail;
             }
             return size;
@@ -41,7 +44,7 @@ int get_offset_in_struct(Type t, char *name) {
         if (strcmp(f->name, name) == 0) {
             return offset;
         }
-        offset += f->type->memSize;
+        offset += calculateMemSize(f->type);
         f = f->tail;
     }
     Panic("Unknown field name");
@@ -132,10 +135,13 @@ void insert_code(InterCodes code) {
     if (head == NULL) {
         head = code;
         tail = code;
+        code->next = NULL;
+        code->prev = NULL;
     } else {
         tail->next = code;
         code->prev = tail;
         tail = code;
+        code->next = NULL;
     }
 }
 
@@ -345,9 +351,14 @@ Type translate_structspecifier(ASTNode *str_specifier) {
         // StructSpecifier -> STRUCT OptTag LC DefList RC
         // 我做了一个不太好的假设：不会出现匿名结构体的定义
         char *stru_name = str_specifier->child_list[1]->child_list[0]->value.id;
+        struct_depth++;
         Symbol *sym = lookup_symbol(global_table, stru_name, 0, STRUCT);
         Panic_on(sym == NULL, "Struct %s not defined", stru_name);
+        if (strcmp(str_specifier->child_list[3]->node_name, "DefList") == 0) {
+            translate_deflist(str_specifier->child_list[3], NULL);
+        }
         sym->structType->memSize = calculateMemSize(sym->structType);
+        struct_depth--;
         return sym->structType;
     }
 }
@@ -588,8 +599,8 @@ void translate_dec(ASTNode *dec, Type type) {
         // Dec -> VarDec
         Symbol *sym = translate_vardec(dec->child_list[0], type, 0);
         sym->operand = new_var_op();  // 即使是数组和结构体,也只能对应到普通变量;作为函数参数时,二者才能是对应地址
-        if (sym->vartype->kind != BASIC) {
-            insert_dec_ir(sym->operand, sym->vartype->memSize);
+        if (sym->vartype->kind != BASIC && struct_depth == 0) {
+            insert_dec_ir(sym->operand, calculateMemSize(sym->vartype));
         }
     } else if (match(dec, 4, "Dec", "VarDec", "ASSIGNOP", "Exp")) {
         // Dec -> VarDec ASSIGNOP Exp
@@ -605,7 +616,7 @@ void translate_dec(ASTNode *dec, Type type) {
 }
 
 /// @brief 每一个表达式都会与一个Operand唯一绑定(作为参数place传递)
-/// @param exp
+/// @return Type：在一些情况下需要，在一些情况下无效
 Type translate_exp(ASTNode *exp, Operand place) {
     switch (exp->exp_type) {
         case ASSIGN_EXP: {
@@ -621,10 +632,11 @@ Type translate_exp(ASTNode *exp, Operand place) {
         }
         case UNARY_EXP: {
             // Exp -> MINUS Exp || NOT Exp
+            Type ret = NULL;
             if (match(exp, 3, "Exp", "MINUS", "Exp")) {
                 // Exp -> MINUS Exp
                 Operand tmp = new_tmp_op();
-                translate_exp(exp->child_list[1], tmp);
+                ret = translate_exp(exp->child_list[1], tmp);
                 insert_binop_ir(IR_SUB, place, new_const(0), tmp);
             } else if (match(exp, 3, "Exp", "NOT", "Exp")) {
                 // Exp -> NOT Exp
@@ -638,7 +650,7 @@ Type translate_exp(ASTNode *exp, Operand place) {
             } else {
                 Panic("Invalid Unary Exp");
             }
-            break;
+            return ret;
         }
         case FUN_EXP: {
             // Exp -> ID LP Args RP || Exp -> ID LP RP
@@ -663,20 +675,18 @@ Type translate_exp(ASTNode *exp, Operand place) {
                 place = place == NULL ? new_tmp_op() : place;
                 insert_call_ir(place, fun->operand);
             }
-            break;
+            return fun->returnType;
         }
         case ARR_EXP: {
             return exp_array(exp, place);
         }
         case STRU_EXP: {
             // Exp -> Exp DOT ID
-            exp_struct(exp, place);
-            break;
+            return exp_struct(exp, place);
         }
         case P_EXP: {
             // Exp -> LP Exp RP
-            translate_exp(exp->child_list[1], place);
-            break;
+            return translate_exp(exp->child_list[1], place);
         }
         case ID_EXP: {
             // Exp -> ID (通过查表将var)
@@ -685,27 +695,30 @@ Type translate_exp(ASTNode *exp, Operand place) {
             Symbol *sym = lookup_symbol(current_table, exp->child_list[0]->value.id, 1, VAR);
 
             switch (sym->vartype->kind) {
+                case STRUCT: {
+                    if (sym->operand->kind == OP_VARIABLE) {
+                        insert_assign_ir(ASS_GETADDR, place, sym->operand);
+                    } else {
+                        dump_op(place, sym->operand);
+                    }
+                    break;
+                }
                 case ARRAY: {
                     if (sym->operand->kind == OP_VARIABLE) {
                         insert_assign_ir(ASS_GETADDR, place, sym->operand);
                     } else {
                         dump_op(place, sym->operand);
-                        // insert_assign_ir(ASS_NORMAL, place, sym->operand);
                     }
                     break;
                 }
+                case BASIC: {
+                    dump_op(place, sym->operand);
+                    break;
+                }
                 default: {
+                    Panic("Invalid type");
                 }
             }
-            if (sym->vartype->kind == ARRAY) {
-                if (sym->operand->kind == OP_VARIABLE) {
-                    insert_assign_ir(ASS_GETADDR, place, sym->operand);
-                } else {
-                    dump_op(place, sym->operand);
-                    // insert_assign_ir(ASS_NORMAL, place, sym->operand);
-                }
-            } else
-                dump_op(place, sym->operand);
             return sym->vartype;
         }
         case INT_EXP: {
@@ -736,110 +749,94 @@ void exp_assign(ASTNode *exp, Operand place) {
         insert_assign_ir(ASS_NORMAL, left, right);
     } else if (match(exp->child_list[0], 4, "Exp", "Exp", "DOT", "ID")) {
         // 左边为结构变量的域时,我们希望解析左边表达式能够返回一个地址,这样我们才可以使用 *left = right
-        left->kind =
-            OP_ADDRESS;  // 仅仅作为参数传递到exp_struct()函数, 从exp_struct()函数返回时left->kind依旧是temp类型
+        left->u.tmp.tmp_addr = 1;
         translate_exp(exp->child_list[0], left);
         translate_exp(exp->child_list[2], right);
         insert_assign_ir(ASS_SETVAL, left, right);
     } else {
         // 左边为数组成员,我们希望解析左边的表达式能够返回一个地址,这样我们才可以使用 *left = right
-        left->u.tmp.tmp_addr = 1;
+        left->u.tmp.tmp_addr = 1;  // we are suppose to obtain the addr of the left exp
         translate_exp(exp->child_list[0], left);
         translate_exp(exp->child_list[2], right);
         insert_assign_ir(ASS_SETVAL, left, right);
     }
 
-    if (place) insert_assign_ir(ASS_NORMAL, place, left);  // TODO: 需要再做检查
-}
-
-/// @brief Exp -> Exp DOT ID
-/// @param place 是我们分析完表达式之后应该返回的内容. (1) place->kind = OP_TEMP,表示我们需要返回一个值,比如 n = op.o1 +
-/// op.o2 (2) place->kind = OP_ADDR,表示我们需要返回一个地址,比如 op.o1 = 1.
-/// @note: place分了两种类型只是为了区分开不同情况,本函数返回前依旧会将place->kind强制设置为OP_TEMP
-void exp_struct(ASTNode *exp, Operand place) {
-    Operand tmp = new_op(NULL);
-    Type type = translate_exp(exp->child_list[0], tmp);  // tmp可能是一个地址基址,也可能是一个变量
-    Panic_ON(tmp->kind != OP_VARIABLE && tmp->kind != OP_ADDRESS, "exp_stru");
-    int offset = get_offset_in_struct(type, exp->child_list[2]->value.id);
-    if (offset) {
-        Operand offset_op = new_const(offset);
-        switch (place->kind) {
-            case OP_ADDRESS: {
-                if (tmp->kind == OP_ADDRESS)
-                    insert_binop_ir(IR_ADD, place, tmp, offset_op);  // place := tmp + #offset
-                else
-                    insert_binop_ir(IR_ADDRADD, place, tmp, offset_op);  // place := &tmp + offset
-                break;
-            }
-            case OP_TEMP: {
-                if (tmp->kind == OP_ADDRESS) {
-                    Operand addr = new_tmp_op();
-                    insert_binop_ir(IR_ADD, addr, tmp, offset_op);  // addr := tmp + #offset
-                    insert_assign_ir(ASS_GETVAL, place, addr);      // place := *addr
-                } else {
-                    Operand addr = new_tmp_op();
-                    insert_binop_ir(IR_ADDRADD, addr, tmp, offset_op);  // addr := &tmp + #offset
-                    insert_assign_ir(ASS_GETVAL, place, addr);          // place := *addr
-                }
-            }
-        }
-
-    } else {
-        switch (place->kind) {
-            case OP_ADDRESS: {
-                if (tmp->kind == OP_ADDRESS)
-                    insert_assign_ir(ASS_NORMAL, place, tmp);  // place := tmp
-                else
-                    insert_assign_ir(ASS_GETADDR, place, tmp);  // place := &tmp
-                break;
-            }
-            case OP_TEMP: {
-                if (tmp->kind == OP_ADDRESS)
-                    insert_assign_ir(ASS_GETVAL, place, tmp);  // place = *tmp;
-                else {
-                    Operand addr = new_tmp_op();
-                    insert_assign_ir(ASS_GETADDR, addr, tmp);   // addr := &tmp
-                    insert_assign_ir(ASS_GETVAL, place, addr);  // place := *addr
-                }
-                break;
-            }
-            default:
-                Panic("Invalid");
-        }
+    // 因为不会出现数组和结构体的直接赋值，因此正确？
+    if (place) {
+        // 这里非常精妙，需要仔细思考和斟酌
+        // 主要是考虑到多个赋值连续的情况，注意赋值号解析是从右往左的
+        if (left->u.tmp.tmp_addr == 0)  // 如果是普通变量的赋值，left存放值，place := left
+            insert_assign_ir(ASS_NORMAL, place, left);
+        else  // 如果是数组或者结构体赋值，那么left存放地址，需要place := *left
+            insert_assign_ir(ASS_GETVAL, place, left);
     }
-    place->kind = OP_TEMP;  // 只是为了方便打印
 }
 
-/// @brief
-/// @param exp 节点
+/// @brief 结构体绑定的操作数(place)Operand类型必定为临时变量并且tmp_addr = 1表示临时变量存储地址
 /// @param place exp绑定的操作数
-/// @return
+/// @return May not be used
+/// @note 如果place->tmp_addr = 0表示调用者希望我们返回一个值
+Type exp_struct(ASTNode *exp, Operand place) {
+    // Exp -> Exp.ID
+    char *field_name = exp->child_list[2]->value.id;
+    Operand basis = new_tmp_op();
+    basis->u.tmp.tmp_addr = 1;  // 希望拿到地址
+    Type type = translate_exp(exp->child_list[0], basis);
+    int offset = get_offset_in_struct(type, field_name);
+
+    int should_ret_val = place->u.tmp.tmp_addr == 0;  // place需要返回值
+    if (should_ret_val) {
+        Operand addr = new_tmp_op();
+        insert_binop_ir(IR_ADD, addr, basis, new_const(offset));  // addr := basis + #offset
+        insert_assign_ir(ASS_GETVAL, place, addr);                // place = *addr
+    } else {
+        insert_binop_ir(IR_ADD, place, basis, new_const(offset));
+    }
+    return findField(type, field_name);
+}
+
+/// @brief 数组绑定的操作数(place)Operand类型必定为临时变量并且tmp_addr = 1表示临时变量存储地址
+/// @param place exp绑定的操作数
+/// @return May not be used
+/// @note 如果place->tmp_addr = 0表示调用者希望我们返回一个值
 Type exp_array(ASTNode *exp, Operand place) {
+    if (place == NULL) place = new_tmp_op();  // 默认返回值比如a[func()];这种语句我们希望func()函数还是会被调用
+    Panic_ON(match(exp, 5, "Exp", "Exp", "LB", "Exp", "RB") == 0, "exp_array");
     /**
-     * place作为临时变量可以接受两种值:
-     * (1) 接收地址:比如 a[1][1] = 1; 我们希望解析完a[1][1]后place接受一个地址
-     * (2) 接受值:比如 i = a[1][1],我们希望a[1][1]解析完后place接受一个值
+     * 为了统一，我们约定place为临时变量并且存储地址 kind = OP_TEMP && u.tmp_addr = 1
+     * 整个过程比较简单：
+     * （1）获得数组基地址basis : translate_exp(child[0], basis)
+     * （2）获得索引index : translate_exp(child[2], index)
+     * （3）获得偏移量offset:
+     *      (3.1) index->kind = OP_CONST, offset = new_const(index->value * elem.memSize)
+     *      (3.2) 否则，插入乘法指令：offset := index * elem.memSize
+     * 去除place存储地址的假设，我们需要考虑读取数组元素（比如出现在=右边并且参与计算时），我们希望place能够返回一个值而非地址，因此：
+     *      当place->tmp_addr = 0（由调用者告知）时，我们需要再插入 y := *addr指令
      */
     Operand basis = new_tmp_op();
     basis->u.tmp.tmp_addr = 1;
-    Type type = translate_exp(exp->child_list[0], basis);
+    Type type = translate_exp(exp->child_list[0], basis);  // first we obtain the basis addr of the array
     Operand index = new_tmp_op();
     translate_exp(exp->child_list[2], index);
     Operand offset;
     if (index->kind == OP_CONSTANT) {
-        offset = new_const(index->u.value * (type->u.array.elem->memSize));
+        offset = new_const(index->u.value *
+                           calculateMemSize(type->u.array.elem));  // 记得调用函数计算元素大小（否则高维数组会出错）
     } else {
         offset = new_tmp_op();
-        insert_binop_ir(IR_MUL, offset, index, new_const(type->u.array.elem->memSize));
+        insert_binop_ir(IR_MUL, offset, index, new_const(calculateMemSize(type->u.array.elem)));
     }
 
-    int should_ret_val = (place->u.tmp.tmp_addr == 0 && type->u.array.elem->kind == BASIC);  // 判断接受值
+    int should_ret_val =
+        (place->u.tmp.tmp_addr == 0 &&
+         type->u.array.elem->kind == BASIC);  // 判断接受值:只有tmp_flag = 0并且是解析完数组到最底层才返回数组的值
     if (should_ret_val) {
+        // In this branch, we insert a GET_VAL instruction
         Operand addr = new_tmp_op();
-        insert_binop_ir(IR_ADD, addr, basis, offset);
-        insert_assign_ir(ASS_GETVAL, place, addr);
+        insert_binop_ir(IR_ADD, addr, basis, offset);  // addr := basis + offset
+        insert_assign_ir(ASS_GETVAL, place, addr);     // place := *addr
     } else {
-        insert_binop_ir(IR_ADD, place, basis, offset);
+        insert_binop_ir(IR_ADD, place, basis, offset);  // place := basis + offset
     }
     return type->u.array.elem;
 }
@@ -848,11 +845,9 @@ Type exp_array(ASTNode *exp, Operand place) {
 /// DIV Exp
 /// @param exp ASTNode节点
 void exp_binary(ASTNode *exp, Operand place) {
-    if (place == NULL) return;
+    // if (place == NULL) return;  // ex : 1 + 1;之类的语句，无实际含义可以直接返回
     Operand left = new_tmp_op();
     Operand right = new_tmp_op();
-    translate_exp(exp->child_list[0], left);
-    translate_exp(exp->child_list[2], right);
     int kind = -1;
     switch (exp->bi_type) {
         case BI_AND:
@@ -860,11 +855,13 @@ void exp_binary(ASTNode *exp, Operand place) {
         case BI_RELOP: {
             Operand label1 = new_label();
             Operand label2 = new_label();
+
             insert_assign_ir(ASS_NORMAL, place, new_const(0));
             translate_cond(exp, label1, label2);
             insert_label_ir(label1);
             insert_assign_ir(ASS_NORMAL, place, new_const(1));
             insert_label_ir(label2);
+
             return;
         }
         case BI_PLUS:
@@ -882,10 +879,12 @@ void exp_binary(ASTNode *exp, Operand place) {
         default:
             break;
     }
-    // 为什么要判断place是否为NULL? 因为文法允许 1 + 1; 这种情况
-    insert_binop_ir(kind, place, left, right);  // t1 := v2 + #1
+    translate_exp(exp->child_list[0], left);
+    translate_exp(exp->child_list[2], right);
+    insert_binop_ir(kind, place, left, right);  // ex : t1 := v2 + #1
 }
 
+/// @brief 注意到参数的push顺序，比如func(x, y, z)那么指令为: ARG z; ARG y; ARG x
 void translate_args(ASTNode *args) {
     if (match(args, 2, "Args", "Exp")) {
         // Args -> Exp
@@ -904,9 +903,11 @@ void translate_args(ASTNode *args) {
 }
 
 //============================================================================================================================//
+//------------------------- 打印指令和文件输出相关 ----------------------------------//
 
 /// @brief 将Operand转换为字符串
-/// @note Operand的可能值为变量、临时变量、常量、地址，格式分别为v1、t1(注意到临时变量可以存储值或者地址)、#1、v1
+/// @note
+/// Operand的可能值为变量、临时变量、常量、地址，格式分别为v1、t1(注意到临时变量可以存储值或者地址)、#1、v1，至于什么时候用&t||*t或者&v||*v则取决于具体的指令，本函数不需要考虑这个问题
 /// @param op Operand
 /// @return 字符串
 char *print_operand(Operand op) {

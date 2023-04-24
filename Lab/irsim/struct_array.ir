@@ -1,0 +1,137 @@
+FUNCTION set_student :
+PARAM v5
+PARAM v6
+PARAM v7
+PARAM v8
+PARAM v9
+t1 := v5 + #0
+*t1 := v6
+t4 := v5 + #4
+*t4 := v7
+t10 := v5 + #8
+t9 := t10 + #0
+t7 := t9 + #0
+*t7 := v8
+t16 := v5 + #8
+t15 := t16 + #0
+t13 := t15 + #4
+*t13 := v9
+RETURN #0
+FUNCTION dist_between_student :
+PARAM v10
+PARAM v11
+t24 := v10 + #8
+t23 := t24 + #0
+t27 := t23 + #0
+t21 := *t27
+t29 := v11 + #8
+t28 := t29 + #0
+t32 := t28 + #0
+t22 := *t32
+t20 := t21 - t22
+v12 := t20
+t37 := v10 + #8
+t36 := t37 + #0
+t40 := t36 + #4
+t34 := *t40
+t42 := v11 + #8
+t41 := t42 + #0
+t45 := t41 + #4
+t35 := *t45
+t33 := t34 - t35
+v13 := t33
+t47 := v12 * v12
+t48 := v13 * v13
+t46 := t47 + t48
+RETURN t46
+FUNCTION main :
+DEC v14 64
+t56 := &v14
+t55 := t56 + #0
+t53 := t55 + #0
+*t53 := #18
+t61 := &v14
+t60 := t61 + #0
+t58 := t60 + #4
+*t58 := #100
+t68 := &v14
+t67 := t68 + #0
+t66 := t67 + #8
+t65 := t66 + #0
+t63 := t65 + #0
+*t63 := #1
+t76 := &v14
+t75 := t76 + #0
+t74 := t75 + #8
+t73 := t74 + #0
+t71 := t73 + #4
+*t71 := #2
+t82 := &v14
+t81 := t82 + #16
+t79 := t81 + #0
+*t79 := #19
+t87 := &v14
+t86 := t87 + #16
+t84 := t86 + #4
+*t84 := #99
+t94 := &v14
+t93 := t94 + #16
+t92 := t93 + #8
+t91 := t92 + #0
+t89 := t91 + #0
+*t89 := #3
+t102 := &v14
+t101 := t102 + #16
+t100 := t101 + #8
+t99 := t100 + #0
+t97 := t99 + #4
+*t97 := #4
+t106 := &v14
+t105 := t106 + #32
+ARG #6
+ARG #5
+ARG #98
+ARG #20
+ARG t105
+t112 := CALL set_student
+t114 := &v14
+t113 := t114 + #48
+ARG #7
+ARG #8
+ARG #97
+ARG #21
+ARG t113
+t120 := CALL set_student
+t123 := &v14
+t122 := t123 + #0
+t126 := &v14
+t125 := t126 + #16
+ARG t125
+ARG t122
+t121 := CALL dist_between_student
+WRITE t121
+t130 := &v14
+t129 := t130 + #0
+t133 := &v14
+t132 := t133 + #32
+ARG t132
+ARG t129
+t128 := CALL dist_between_student
+WRITE t128
+t137 := &v14
+t136 := t137 + #16
+t140 := &v14
+t139 := t140 + #32
+ARG t139
+ARG t136
+t135 := CALL dist_between_student
+WRITE t135
+t144 := &v14
+t143 := t144 + #0
+t147 := &v14
+t146 := t147 + #48
+ARG t146
+ARG t143
+t142 := CALL dist_between_student
+WRITE t142
+RETURN #0

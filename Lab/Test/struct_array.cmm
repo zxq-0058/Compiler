@@ -1,0 +1,50 @@
+/*
+    结构体数组
+*/
+
+struct Student
+{
+    int age;
+    int score;
+    struct Position {
+        int p[2];
+    } pos;
+};
+
+int set_student(struct Student stu, int age, int score, int p1, int p2) {
+    stu.age = age;
+    stu.score = score;
+    stu.pos.p[0] = p1;
+    stu.pos.p[1] = p2;
+    return 0;
+}
+
+int dist_between_student(struct Student stu1, struct Student stu2) {
+    int x = stu1.pos.p[0] - stu2.pos.p[0];
+    int y = stu1.pos.p[1] - stu2.pos.p[1];
+    return x * x + y * y;
+}
+int main() {
+    struct Student stu[4];
+
+    stu[0].age = 18;
+    stu[0].score = 100;
+    stu[0].pos.p[0] = 1;
+    stu[0].pos.p[1] = 2;
+
+    stu[1].age = 19;
+    stu[1].score = 99;
+    stu[1].pos.p[0] = 3;
+    stu[1].pos.p[1] = 4;
+
+    set_student(stu[2], 20, 98, 5, 6);
+
+    set_student(stu[3], 21, 97, 8, 7);
+
+    write(dist_between_student(stu[0], stu[1])); // 2^2 + 2^2 = 8
+    write(dist_between_student(stu[0], stu[2])); // 4^2 + 4^2 = 32
+    write(dist_between_student(stu[1], stu[2])); // 2^2 + 2^2 = 8
+    write(dist_between_student(stu[0], stu[3])); // 7^2 + 5^2 = 49 + 25 = 74
+
+    return 0;
+}

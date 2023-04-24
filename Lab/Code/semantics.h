@@ -95,6 +95,7 @@ Type createBasicType(const char *basicTypeStr);
 Type createArrayType(Type elem, int size);
 FieldList createFieldList(char *name, Type type, FieldList tail);
 Type createStructureType(FieldList fields);
+Type findField(Type struct_type, const char *field_name);
 
 void appendParamList(ParamList *paramList, char *name, Type type);
 static int isEqualParamList(ParamList p1, ParamList p2);

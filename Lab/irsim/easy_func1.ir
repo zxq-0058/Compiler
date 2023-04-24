@@ -1,0 +1,29 @@
+FUNCTION zero :
+RETURN #0
+FUNCTION one :
+t4 := CALL zero
+t2 := #1 + t4
+RETURN t2
+FUNCTION two :
+t7 := CALL one
+t5 := #1 + t7
+RETURN t5
+FUNCTION three :
+t10 := CALL two
+t8 := #1 + t10
+RETURN t8
+FUNCTION four :
+t13 := CALL three
+t11 := #1 + t13
+RETURN t11
+FUNCTION five :
+t16 := CALL four
+t14 := #1 + t16
+RETURN t14
+FUNCTION main :
+t18 := CALL five
+t19 := CALL four
+t17 := t18 * t19
+v1 := t17
+WRITE v1
+RETURN #0

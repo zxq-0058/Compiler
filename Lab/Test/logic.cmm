@@ -1,0 +1,32 @@
+/*
+一些简单的逻辑表达式的测试:
+&&
+||
+!
+*/
+
+
+int main() {
+    int one = 1 && 1;
+    int zero = 1 && 0;
+    int one_1 = 1 || 0;
+    int zero_1 = 0 || 0;
+    write(one);
+    write(zero);
+    write(one_1);
+    write(zero_1);
+
+    if (zero != one) {
+        write(1);
+    } else {
+        write(0);
+    }
+
+    if (!zero) {
+        write(1);
+    } else {
+        write(0);
+    }
+
+    return 0;
+}

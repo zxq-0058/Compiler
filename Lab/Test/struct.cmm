@@ -1,0 +1,45 @@
+/*
+    本测试测试结构体正确性
+*/
+
+struct Matrix{
+    struct Size{
+        int col;
+    } s;
+    int a[10];
+    int b[10][10];
+};
+
+int dot_product(struct Matrix dest, struct Matrix o1, struct Matrix o2) {
+    int n = dest.s.col, i = 0;
+    while(i < n) {
+        dest.a[i] = o1.a[i] * o2.a[i];
+        i = i + 1;
+    }
+    return 0;
+}
+
+int main() {
+    struct Matrix d, e, f;
+    int i = 0, n = 10;
+    d.s.col = e.s.col = f.s.col = n;
+    write(n);
+    write(d.s.col);
+    write(e.s.col);
+    write(d.s.col);
+    while(i < n) {
+        f.a[i] = i;
+        e.a[i] = n - i;
+        i = i + 1;
+    }
+    dot_product(d, e, f);
+    i = 0;
+    while(i < n) {
+        write(d.a[i]);
+        i = i + 1;
+    }
+
+    d.b[5][5] = 25;
+    write(d.b[5][5]); 
+    return 0;
+}

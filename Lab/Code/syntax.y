@@ -232,7 +232,7 @@ Dec: VarDec { $$ = newASTNode("Dec", @1.first_line, 1, $1); }
 Exp: Exp ASSIGNOP Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = ASSIGN_EXP;}
         | Exp AND Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = BINARY_EXP; $$->bi_type = BI_AND; }
         | Exp OR Exp  { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = BINARY_EXP; $$->bi_type = BI_OR; }
-        | Exp RELOP Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3);$$->exp_type = BINARY_EXP; }
+        | Exp RELOP Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3);$$->exp_type = BINARY_EXP; $$->bi_type = BI_RELOP;}
         | Exp PLUS Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = BINARY_EXP; $$->bi_type = BI_PLUS;}
         | Exp MINUS Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = BINARY_EXP; $$->bi_type = BI_MINUS;}
         | Exp STAR Exp { $$ = newASTNode("Exp", @1.first_line, 3, $1, $2, $3); $$->exp_type = BINARY_EXP; $$->bi_type = BI_STAR;}

@@ -1,21 +1,26 @@
 FUNCTION add :
-PARAM v1
-t2 := *v1
-t4 := v1 + #4
-t3 := *t4
+PARAM v3
+t5 := v3 + #0
+t2 := *t5
+t7 := v3 + #4
+t3 := *t7
 t1 := t2 + t3
 RETURN t1
 FUNCTION main :
-DEC v3 8
-t5 := &v3
-*t5 := #1
-t7 := &v3 + #4
-*t7 := #23
-t13 := &v3
-t11 := *t13
-t14 := &v3 + #4
-t12 := *t14
-t10 := t11 + t12
-v2 := t10
-WRITE v2
+DEC v5 8
+t10 := &v5
+t8 := t10 + #0
+*t8 := #1
+t13 := &v5
+t11 := t13 + #4
+*t11 := #23
+t18 := &v5
+t19 := t18 + #0
+t16 := *t19
+t20 := &v5
+t21 := t20 + #4
+t17 := *t21
+t15 := t16 + t17
+v4 := t15
+WRITE v4
 RETURN #0

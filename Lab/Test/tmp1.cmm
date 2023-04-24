@@ -1,0 +1,7 @@
+int main()
+{
+    int j = 0;
+    int i = (0 && (j = 1));
+    write(j); // 0
+    return 0;
+}

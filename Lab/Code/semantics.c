@@ -74,7 +74,7 @@ Type createArrayType(Type elem, int size) {
     newType->kind = ARRAY;
     newType->u.array.elem = elem;
     newType->u.array.size = size;
-    newType->memSize = size * elem->memSize;
+    newType->memSize = 0;  // 则会将在Lab3中的函数calculateMemSize进行计算
     return newType;
 }
 
@@ -86,6 +86,7 @@ Type createStructureType(FieldList fields) {
     Type newType = (Type)malloc(sizeof(struct Type_));
     newType->kind = STRUCTURE;
     newType->u.structure = fields;
+    newType->memSize = 0;  // 则会将在Lab3中的函数calculateMemSize进行计算
     return newType;
 }
 

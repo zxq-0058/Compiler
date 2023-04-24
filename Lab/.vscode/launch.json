@@ -7,8 +7,9 @@
             "request": "launch",
             "program": "${workspaceFolder}/Code/parser",
             "args": [
-                // "./Test/tmp.cmm",
-                "./Test/6.cmm",
+                // "./Test/logic2.cmm",
+                "./Test/tmp1.cmm",
+                // "./Test/students.cmm",
                 "./Code/out.txt"
                 // "./Code/tmp.cmm"
                 // "./Strict_Test/Lab2_Normal/tests/ZZ03.cmm"
