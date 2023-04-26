@@ -8,7 +8,7 @@
             "program": "${workspaceFolder}/Code/parser",
             "args": [
                 // "./Test/logic2.cmm",
-                "./Test/tmp1.cmm",
+                "./Test/tmp.cmm",
                 // "./Test/students.cmm",
                 "./Code/out.txt"
                 // "./Code/tmp.cmm"

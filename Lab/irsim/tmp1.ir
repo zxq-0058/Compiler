@@ -1,16 +1,22 @@
 FUNCTION main :
-v1 := #0
-t2 := #0
-IF #0 != #0 GOTO label3
-GOTO label2
-LABEL label3 :
-v1 := #1
-t6 := v1
-IF t6 != #0 GOTO label1
-GOTO label2
-LABEL label1 :
-t2 := #1
-LABEL label2 :
-v2 := t2
-WRITE v1
+DEC v5 24
+DEC v6 32
+DEC v7 20
+t4 := &v5
+t7 := &v6
+t9 := v1 * #16
+t6 := t7 + t9
+t11 := v2 * #4
+t12 := t6 + t11
+t5 := *t12
+t13 := t5 * #12
+t3 := t4 + t13
+t15 := &v7
+t17 := v3 * #4
+t18 := t15 + t17
+t14 := *t18
+t19 := t14 * #4
+t20 := t3 + t19
+t2 := *t20
+v4 := t2
 RETURN #0

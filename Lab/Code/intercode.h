@@ -4,9 +4,9 @@
 #include "semantics.h"
 #include "syntax.h"
 
-typedef struct Operand_* Operand;
-typedef struct InterCode_* InterCode;
-typedef struct InterCodes_* InterCodes;
+typedef struct Operand_ *Operand;
+typedef struct InterCode_ *InterCode;
+typedef struct InterCodes_ *InterCodes;
 
 struct Operand_ {
     enum {
@@ -23,10 +23,15 @@ struct Operand_ {
             int tmp_addr;  // 0:表示t{tmp_no}存放的是值, 1:表示t{tmp_no}存放的是地址
         } tmp;
         int value;
-        char* relop;
-        char* func_name;
+        char *relop;
+        char *func_name;
     } u;
 };
+
+// 我们约定临时变量可能存储值也可能存储地址，当tmp_addr = 1时表示存储地址，否则存储值
+#define IS_TMP_ADDR(t) (t->kind == OP_TEMP && t->u.tmp.tmp_addr == 1)
+// 临时变量存储值
+#define IS_TMP_VAL(t) (t->kind == OP_TEMP && t->u.tmp.tmp_addr == 0)
 
 struct InterCode_ {
     enum {
@@ -80,7 +85,7 @@ struct InterCode_ {
              * IF x [relop] y GOTO z
              */
             Operand x, y, z;
-            char* relop;
+            char *relop;
         } ifgoto;
         struct {
             /**

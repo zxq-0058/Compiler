@@ -401,8 +401,10 @@ void init() {
     global_table = current_table = init_symbol_table(128, 0);
     Log("Initialize Symbol Table for Semantic Analysis!");
     Symbol *read = createFunSymbol("read", 0, createBasicType("int"), NULL, 1, 0);
-    ParamList param = (ParamList *)malloc(sizeof(ParamList));
+    ParamList param = (ParamList)malloc(sizeof(ParamList));
+    param->name = NULL;
     param->type = createBasicType("int");
+    param->next = NULL;
     Symbol *write = createFunSymbol("write", 0, createBasicType("int"), param, 1, 0);
 
     add_symbol(global_table, read);

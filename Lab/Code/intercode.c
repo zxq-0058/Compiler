@@ -2,11 +2,55 @@
 
 // Path: Code/intercode.c
 
+int calculateMemSize(Type t);
+int get_offset_in_struct(Type t, char *name);
+static inline Operand new_op(Operand src);
+static inline Operand new_label();
+static inline Operand new_var_op();
+static inline Operand new_tmp_op();
+static inline Operand new_const(int value);
+static inline Operand new_func_op(char *fname);
+static inline Operand new_addr_op();
+static inline void dump_op(Operand dest, Operand src);
+void insert_code(InterCodes code);
+void insert_label_ir(Operand label);
+void insert_func_ir(Operand func);
+void insert_assign_ir(int assign_type, Operand left, Operand right);
+void insert_param_ir(Operand param);
+void insert_ret_ir(Operand ret);
+void insert_binop_ir(int kind, Operand result, Operand op1, Operand op2);
+void insert_relop_ir(char *relop, Operand x, Operand y, Operand label);
+void insert_goto_ir(Operand label);
+void insert_read_ir(Operand op);
+void insert_write_ir(Operand op);
+void insert_call_ir(Operand result, Operand func);
+void insert_arg_ir(Operand arg);
+void insert_dec_ir(Operand op, int size);
+void translate_program(ASTNode *program, FILE *f);
+void translate_extdeflist(ASTNode *extdeflist);
+void translate_extdef(ASTNode *extdef);
+void translate_extdeclist(ASTNode *extdeclist);
 Type translate_specifier(ASTNode *specifier);
 Type translate_structspecifier(ASTNode *str_specifier);
+void translate_fundec(ASTNode *fundec, Type retType);
+void translate_varlist(ASTNode *varlist);
+void translate_paramdec(ASTNode *paramdec);
+void translate_compst(ASTNode *compst, Type return_type);
+void translate_stmtlist(ASTNode *stmtlist, Type ret_type);
+void translate_cond(ASTNode *exp, Operand label_true, Operand label_false);
+void translate_stmt(ASTNode *stmt, Type ret_type);
+void translate_deflist(ASTNode *deflist, FieldList *fields);
+void translate_def(ASTNode *def, FieldList *fields);
+void translate_declist(ASTNode *declist, Type type, FieldList *fields);
+void translate_dec(ASTNode *dec, Type type);
 Type translate_exp(ASTNode *exp, Operand place);
-Type exp_array(ASTNode *exp, Operand place);
+void exp_assign(ASTNode *exp, Operand place);
 Type exp_struct(ASTNode *exp, Operand place);
+Type exp_array(ASTNode *exp, Operand place);
+void exp_binary(ASTNode *exp, Operand place);
+void translate_args(ASTNode *args);
+void print_intercodes(FILE *fp);
+
 //============================================================================================================================//
 
 extern SymbolTable *current_table;
@@ -90,6 +134,7 @@ static inline Operand new_tmp_op() {
     Operand temp = (Operand)malloc(sizeof(struct Operand_));
     temp->kind = OP_TEMP;
     temp->u.tmp.tmp_no = tmp_count++;
+    temp->u.tmp.tmp_addr = 0;
     return temp;
 }
 
@@ -177,7 +222,7 @@ void insert_assign_ir(int assign_type, Operand left, Operand right) {
 /// @brief PARAM x
 /// @param param x
 void insert_param_ir(Operand param) {
-    InterCodes code = (InterCode)malloc(sizeof(struct InterCodes_));
+    InterCodes code = (InterCodes)malloc(sizeof(struct InterCodes_));
     code->code = (InterCode)malloc(sizeof(struct InterCode_));
     code->code->kind = IR_PARAM;
     code->code->u.one.op = param;
@@ -598,7 +643,11 @@ void translate_dec(ASTNode *dec, Type type) {
     if (match(dec, 2, "Dec", "VarDec")) {
         // Dec -> VarDec
         Symbol *sym = translate_vardec(dec->child_list[0], type, 0);
+        // if (sym->vartype->kind == BASIC)
         sym->operand = new_var_op();  // 即使是数组和结构体,也只能对应到普通变量;作为函数参数时,二者才能是对应地址
+        // else
+        // sym->operand = new_addr_op();
+
         if (sym->vartype->kind != BASIC && struct_depth == 0) {
             insert_dec_ir(sym->operand, calculateMemSize(sym->vartype));
         }
@@ -692,6 +741,8 @@ Type translate_exp(ASTNode *exp, Operand place) {
             // Exp -> ID (通过查表将var)
             // ID的类型：
             // (1)普通变量 (2)结构体变量 (3) 数组变量
+            // 对于普通变量，拷贝Operand
+            // 对于结构体或者数组，需要考虑原先符号表中存储是OP_VAR还是OP_ADDR
             Symbol *sym = lookup_symbol(current_table, exp->child_list[0]->value.id, 1, VAR);
 
             switch (sym->vartype->kind) {
@@ -723,8 +774,10 @@ Type translate_exp(ASTNode *exp, Operand place) {
         }
         case INT_EXP: {
             // Exp -> INT
-            place->kind = OP_CONSTANT;
-            place->u.value = exp->child_list[0]->value.ival;
+            if (place) {
+                place->kind = OP_CONSTANT;
+                place->u.value = exp->child_list[0]->value.ival;
+            }
             break;
         }
         case FLOAT_EXP: {
@@ -734,6 +787,7 @@ Type translate_exp(ASTNode *exp, Operand place) {
         default:
             Panic("Invalid Exp");
     }
+    return createBasicType("int");  // 默认返回INT类型
 }
 
 /// @brief Exp -> Exp ASSIGN Exp (表达式左部有三种情况: ID, Exp[Exp],
@@ -765,7 +819,8 @@ void exp_assign(ASTNode *exp, Operand place) {
     if (place) {
         // 这里非常精妙，需要仔细思考和斟酌
         // 主要是考虑到多个赋值连续的情况，注意赋值号解析是从右往左的
-        if (left->u.tmp.tmp_addr == 0)  // 如果是普通变量的赋值，left存放值，place := left
+        int left_is_addr = IS_TMP_ADDR(left) || (left->kind == OP_ADDRESS);
+        if (!left_is_addr)  // 如果是普通变量的赋值，left存放值，place := left
             insert_assign_ir(ASS_NORMAL, place, left);
         else  // 如果是数组或者结构体赋值，那么left存放地址，需要place := *left
             insert_assign_ir(ASS_GETVAL, place, left);
@@ -773,7 +828,7 @@ void exp_assign(ASTNode *exp, Operand place) {
 }
 
 /// @brief 结构体绑定的操作数(place)Operand类型必定为临时变量并且tmp_addr = 1表示临时变量存储地址
-/// @param place exp绑定的操作数
+/// @param place exp绑定的操作数，本次解析需要返回的内容
 /// @return May not be used
 /// @note 如果place->tmp_addr = 0表示调用者希望我们返回一个值
 Type exp_struct(ASTNode *exp, Operand place) {
@@ -783,8 +838,9 @@ Type exp_struct(ASTNode *exp, Operand place) {
     basis->u.tmp.tmp_addr = 1;  // 希望拿到地址
     Type type = translate_exp(exp->child_list[0], basis);
     int offset = get_offset_in_struct(type, field_name);
+    Type ret = findField(type, field_name);
 
-    int should_ret_val = place->u.tmp.tmp_addr == 0;  // place需要返回值
+    int should_ret_val = (IS_TMP_VAL(place)) && (ret->kind == BASIC);  // place需要返回值
     if (should_ret_val) {
         Operand addr = new_tmp_op();
         insert_binop_ir(IR_ADD, addr, basis, new_const(offset));  // addr := basis + #offset
@@ -792,7 +848,7 @@ Type exp_struct(ASTNode *exp, Operand place) {
     } else {
         insert_binop_ir(IR_ADD, place, basis, new_const(offset));
     }
-    return findField(type, field_name);
+    return ret;
 }
 
 /// @brief 数组绑定的操作数(place)Operand类型必定为临时变量并且tmp_addr = 1表示临时变量存储地址
@@ -828,10 +884,9 @@ Type exp_array(ASTNode *exp, Operand place) {
     }
 
     int should_ret_val =
-        (place->u.tmp.tmp_addr == 0 &&
+        (IS_TMP_VAL(place) &&
          type->u.array.elem->kind == BASIC);  // 判断接受值:只有tmp_flag = 0并且是解析完数组到最底层才返回数组的值
     if (should_ret_val) {
-        // In this branch, we insert a GET_VAL instruction
         Operand addr = new_tmp_op();
         insert_binop_ir(IR_ADD, addr, basis, offset);  // addr := basis + offset
         insert_assign_ir(ASS_GETVAL, place, addr);     // place := *addr
@@ -911,7 +966,7 @@ void translate_args(ASTNode *args) {
 /// @param op Operand
 /// @return 字符串
 char *print_operand(Operand op) {
-    if (op == NULL) return;  // 这是因为有一些函数调用时可以不使用返回值，比如write(x)
+    if (op == NULL) return NULL;  // 这是因为有一些函数调用时可以不使用返回值，比如write(x)
     char *str = (char *)malloc(16);
     switch (op->kind) {
         case OP_VARIABLE:

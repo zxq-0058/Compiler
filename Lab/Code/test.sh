@@ -51,3 +51,7 @@ set +e
 
 ./parser ../Test/floyd.cmm ../irsim/floyd.ir
 
+./parser ../Test/overflow.cmm ../irsim/overflow.ir
+
+
+

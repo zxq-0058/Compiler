@@ -1,13 +1,19 @@
 int floyd(int _dis[10][10], int _n) {
   int _i = 0, _j = 0, _k = 0;
   int _max = 0;
+  write(-9999);
+  write(_n);
   while (_k < _n) {
     _i = _j = 0;
     while (_i < _n) {
       _j = 0;
       while (_j < _n) {
+        write(_dis[_i][_j]);
         if (_dis[_i][_j] > _dis[_i][_k] + _dis[_k][_j]) {
           _dis[_i][_j] = _dis[_i][_k] + _dis[_k][_j];
+          write(-1);
+          write(_dis[_i][_j]);
+          write(-1);
         }
         _j = _j + 1;
       }
@@ -21,6 +27,9 @@ int floyd(int _dis[10][10], int _n) {
     while (_j < _n) {
       if (_dis[_i][_j] > _max && _dis[_i][_j] != 114514) {
         _max = _dis[_i][_j];
+        write(-9999);
+        write(_max);
+        write(-9999);
       }
       _j = _j + 1;
     }
@@ -35,9 +44,9 @@ int main() {
   int u = 0, v = 0, d = 0;
   int dis[10][10];
 
-  n = read();
-  m = read();
-  q = read();
+  n = read(); // 4
+  m = read(); // 3 
+  q = read(); // 3
   {
     i = j = 0;
     while (i < n) {
@@ -64,7 +73,32 @@ int main() {
     }
   }
 
+  write(99999);
+  {
+    i = j = 0;
+    while (i < n) {
+      j = 0;
+      while (j < n) {
+        write(dis[i][j]);
+        j = j + 1;
+      }
+      i = i + 1;
+    }
+  }
+
   write(floyd(dis, n));
+
+  {
+    i = j = 0;
+    while (i < n) {
+      j = 0;
+      while (j < n) {
+        write(dis[i][j]);
+        j = j + 1;
+      }
+      i = i + 1;
+    }
+  }
 
   {
     i = u = v = 0;

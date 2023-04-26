@@ -9,6 +9,8 @@ extern ASTNode *ast_root;
 extern void yyrestart(FILE *input_file);
 extern int yyparse(void);
 extern void print_AST();
+extern void program_handler(ASTNode *root);
+extern void translate_program(ASTNode *root, FILE *out);
 extern int lexical_error;
 extern int syntax_error;
 // extern int yydebug;
