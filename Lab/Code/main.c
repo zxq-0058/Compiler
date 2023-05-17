@@ -3,7 +3,9 @@
 
 #include "intercode.h"
 #include "logger.h"
+#include "objcode.h"
 #include "semantics.h"
+
 extern ASTNode *ast_root;
 
 extern void yyrestart(FILE *input_file);
@@ -11,6 +13,7 @@ extern int yyparse(void);
 extern void print_AST();
 extern void program_handler(ASTNode *root);
 extern void translate_program(ASTNode *root, FILE *out);
+extern void ir2obj(FILE *fp);
 extern int lexical_error;
 extern int syntax_error;
 // extern int yydebug;
@@ -21,6 +24,7 @@ int main(int argc, char **argv) {
         return 1;
     }
     FILE *in = fopen(argv[1], "r");
+    FILE *ir = fopen("intercode.ir", "w");
     FILE *out = fopen(argv[2], "w");
     if (!in || !out) {
         perror(argv[1]);
@@ -32,7 +36,8 @@ int main(int argc, char **argv) {
     if (!lexical_error && !syntax_error) {
         // print_AST();
         program_handler(ast_root);
-        translate_program(ast_root, out);
+        translate_program(ast_root, ir);
+        ir2obj(out);
     }
     return 0;
 }

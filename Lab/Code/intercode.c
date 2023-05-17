@@ -60,7 +60,7 @@ static int struct_depth = 0;  // 判断结构体嵌套层数
 /// @brief 给定一个类型，返回其内存大小，这一步在将符号插入符号表时会完成
 /// @note 基本类型占用4个字节，数组类型占用elem->memSize * size个字节，结构体类型占用所有域的大小之和
 int calculateMemSize(Type t) {
-    if (t->memSize != 0) return t->memSize;
+    // if (t->memSize != 0) return t->memSize;
     switch (t->kind) {
         case BASIC:
             return sizeof(int);  // 假设基本类型都占用4个字节
@@ -458,7 +458,7 @@ void translate_paramdec(ASTNode *paramdec) {
     if (sym->vartype->kind != BASIC) {
         sym->operand = new_addr_op();
     } else {
-        sym->operand = new_var_op();
+        sym->operand = new_var_op();  // 如果函数是普通参数
     }
     insert_param_ir(sym->operand);
 }
@@ -644,10 +644,10 @@ void translate_dec(ASTNode *dec, Type type) {
         // Dec -> VarDec
         Symbol *sym = translate_vardec(dec->child_list[0], type, 0);
         // if (sym->vartype->kind == BASIC)
+        // 局部变量，绑定的OP是OP_VAR类型
         sym->operand = new_var_op();  // 即使是数组和结构体,也只能对应到普通变量;作为函数参数时,二者才能是对应地址
         // else
         // sym->operand = new_addr_op();
-
         if (sym->vartype->kind != BASIC && struct_depth == 0) {
             insert_dec_ir(sym->operand, calculateMemSize(sym->vartype));
         }
@@ -744,21 +744,22 @@ Type translate_exp(ASTNode *exp, Operand place) {
             // 对于普通变量，拷贝Operand
             // 对于结构体或者数组，需要考虑原先符号表中存储是OP_VAR还是OP_ADDR
             Symbol *sym = lookup_symbol(current_table, exp->child_list[0]->value.id, 1, VAR);
-
             switch (sym->vartype->kind) {
                 case STRUCT: {
+                    // place能够返回结构体变量的地址
                     if (sym->operand->kind == OP_VARIABLE) {
-                        insert_assign_ir(ASS_GETADDR, place, sym->operand);
+                        insert_assign_ir(ASS_GETADDR, place, sym->operand);  // place := &sym->oprand
                     } else {
-                        dump_op(place, sym->operand);
+                        // insert_assign_ir(ASS_NORMAL, place, sym->operand);  // place := sym->oprand
+                        dump_op(place, sym->operand);  // place := sym->oprand
                     }
                     break;
                 }
                 case ARRAY: {
                     if (sym->operand->kind == OP_VARIABLE) {
-                        insert_assign_ir(ASS_GETADDR, place, sym->operand);
+                        insert_assign_ir(ASS_GETADDR, place, sym->operand);  // place := &sym->operand
                     } else {
-                        dump_op(place, sym->operand);
+                        dump_op(place, sym->operand);  // place := sym->operand
                     }
                     break;
                 }
@@ -796,23 +797,25 @@ Type translate_exp(ASTNode *exp, Operand place) {
 void exp_assign(ASTNode *exp, Operand place) {
     Operand left = new_tmp_op();
     Operand right = new_tmp_op();
-
+    // v1 := sth.
+    // EXP = EXP (左部为ID, Exp[Exp], Exp.ID)
+    // 对于不同的情况分开讨论
     if (match(exp->child_list[0], 2, "Exp", "ID")) {
         translate_exp(exp->child_list[0], left);
         translate_exp(exp->child_list[2], right);
-        insert_assign_ir(ASS_NORMAL, left, right);
+        insert_assign_ir(ASS_NORMAL, left, right);  // left := right
     } else if (match(exp->child_list[0], 4, "Exp", "Exp", "DOT", "ID")) {
         // 左边为结构变量的域时,我们希望解析左边表达式能够返回一个地址,这样我们才可以使用 *left = right
         left->u.tmp.tmp_addr = 1;
         translate_exp(exp->child_list[0], left);
         translate_exp(exp->child_list[2], right);
-        insert_assign_ir(ASS_SETVAL, left, right);
+        insert_assign_ir(ASS_SETVAL, left, right);  // *left := right
     } else {
         // 左边为数组成员,我们希望解析左边的表达式能够返回一个地址,这样我们才可以使用 *left = right
         left->u.tmp.tmp_addr = 1;  // we are suppose to obtain the addr of the left exp
         translate_exp(exp->child_list[0], left);
         translate_exp(exp->child_list[2], right);
-        insert_assign_ir(ASS_SETVAL, left, right);
+        insert_assign_ir(ASS_SETVAL, left, right);  // *left := right
     }
 
     // 因为不会出现数组和结构体的直接赋值，因此正确？
@@ -846,7 +849,7 @@ Type exp_struct(ASTNode *exp, Operand place) {
         insert_binop_ir(IR_ADD, addr, basis, new_const(offset));  // addr := basis + #offset
         insert_assign_ir(ASS_GETVAL, place, addr);                // place = *addr
     } else {
-        insert_binop_ir(IR_ADD, place, basis, new_const(offset));
+        insert_binop_ir(IR_ADD, place, basis, new_const(offset));  // place := basis + #offset
     }
     return ret;
 }
@@ -869,12 +872,20 @@ Type exp_array(ASTNode *exp, Operand place) {
      * 去除place存储地址的假设，我们需要考虑读取数组元素（比如出现在=右边并且参与计算时），我们希望place能够返回一个值而非地址，因此：
      *      当place->tmp_addr = 0（由调用者告知）时，我们需要再插入 y := *addr指令
      */
+    // EXP[EXP]
+    // a[i] = 1;
+    // t1 := &a
+    // t2 := i (index)
+    // Exp := a[1][2][3]
     Operand basis = new_tmp_op();
     basis->u.tmp.tmp_addr = 1;
     Type type = translate_exp(exp->child_list[0], basis);  // first we obtain the basis addr of the array
     Operand index = new_tmp_op();
     translate_exp(exp->child_list[2], index);
     Operand offset;
+
+    // offset := index * elem.memSize
+
     if (index->kind == OP_CONSTANT) {
         offset = new_const(index->u.value *
                            calculateMemSize(type->u.array.elem));  // 记得调用函数计算元素大小（否则高维数组会出错）

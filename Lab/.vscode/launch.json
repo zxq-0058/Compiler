@@ -2,15 +2,15 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Lab3_debug",
+            "name": "Lab4_debug",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/Code/parser",
             "args": [
                 // "./Test/logic2.cmm",
-                "./Test/tmp.cmm",
+                "./Test/1.cmm",
                 // "./Test/students.cmm",
-                "./Code/out.txt"
+                "./Code/intercode.ir"
                 // "./Code/tmp.cmm"
                 // "./Strict_Test/Lab2_Normal/tests/ZZ03.cmm"
             ],
@@ -18,7 +18,7 @@
             "cwd": "${workspaceFolder}",
             "miDebuggerPath": "/usr/bin/gdb",
             "MIMode": "gdb",
-            "preLaunchTask": "Lab3_build"
+            "preLaunchTask": "Lab4_build"
         }
     ]
 }
