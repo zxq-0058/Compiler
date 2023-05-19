@@ -1,0 +1,9 @@
+int main() {
+    int a = read();
+    int b = read();
+    int c = a - b;
+    int d = a * b;
+    d = a / b;
+    write(c);
+    write(d);
+}

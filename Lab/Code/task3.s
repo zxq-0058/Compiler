@@ -22,9 +22,24 @@ main:
   addi $sp, $sp, -4
   sw $fp 0($sp)
   move $fp, $sp
-  li $a0, 255
+  addi $sp, $sp, -8
+  addi $sp, $sp, -4
+  sw $ra 0($sp)
+  jal read
+  lw $ra 0($sp)
+  addi $sp, $sp, 4
+  move $t0, $v0
+  sw $t0, 0($fp)
+  lw $t1 0($fp)
+  sw $t1 4($fp)
+  lw $a0, 4($fp)
   addi $sp, $sp, -4
   sw $ra 0($sp)
   jal write
   lw $ra 0($sp)
   addi $sp, $sp, 4
+  li $v0, 1
+  move $sp, $fp
+  lw $fp, 0($sp)
+  addi $sp, $sp, 4
+  jr $ra

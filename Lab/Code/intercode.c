@@ -100,9 +100,9 @@ int get_offset_in_struct(Type t, char *name) {
 //------------------------------------------------ Operand相关部分
 //------------------------------------------------------------//
 
-static int label_count = 1;  // label的计数器
-static int var_count = 1;    // 变量的计数器
-static int tmp_count = 1;    // 临时变量计数器
+int label_count = 1;  // label的计数器
+int var_count = 1;    // 变量的计数器
+int tmp_count = 1;    // 临时变量计数器
 
 /// @brief 返回一个新的操作数（kind等信息拷贝op），如果op == NULL，则申请一个未初始化的Operand
 static inline Operand new_op(Operand src) {

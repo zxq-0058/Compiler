@@ -45,3 +45,11 @@ int main() {
 
 
 
+(3)小任务三：
+int main() {
+    int a;
+    a = read();
+    write(a);
+}
+
+(4)小任务四：

@@ -8,9 +8,10 @@
             "program": "${workspaceFolder}/Code/parser",
             "args": [
                 // "./Test/logic2.cmm",
-                "./Test/1.cmm",
+                // "./Test/task2.cmm",
+                "./Test/task3.cmm",
                 // "./Test/students.cmm",
-                "./Code/intercode.ir"
+                "./Code/out.s"
                 // "./Code/tmp.cmm"
                 // "./Strict_Test/Lab2_Normal/tests/ZZ03.cmm"
             ],

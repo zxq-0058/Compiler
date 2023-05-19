@@ -37,6 +37,8 @@ int main(int argc, char **argv) {
         // print_AST();
         program_handler(ast_root);
         translate_program(ast_root, ir);
+        fflush(ir);
+        setlinebuf(out);
         ir2obj(out);
     }
     return 0;

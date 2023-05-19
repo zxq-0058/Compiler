@@ -1,0 +1,4 @@
+FUNCTION main :
+READ t2
+v1 := t2
+WRITE v1
