@@ -1,0 +1,14 @@
+int g() {
+    write(1);
+    return 555;
+}
+
+int f(int x) {
+    write(x);
+    return x;
+}
+
+int main() {
+    f(1);
+    return 0;
+}

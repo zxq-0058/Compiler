@@ -9,9 +9,11 @@
             "args": [
                 // "./Test/logic2.cmm",
                 // "./Test/task2.cmm",
-                "./Test/task3.cmm",
+            // "./Test/zzw-3.cmm",
+            // "./Test/impossible.cmm",
+            "./Test/tmp1.cmm",  
                 // "./Test/students.cmm",
-                "./Code/out.s"
+            "./Code/out.s"
                 // "./Code/tmp.cmm"
                 // "./Strict_Test/Lab2_Normal/tests/ZZ03.cmm"
             ],
@@ -20,6 +22,17 @@
             "miDebuggerPath": "/usr/bin/gdb",
             "MIMode": "gdb",
             "preLaunchTask": "Lab4_build"
-        }
+        },
+        {
+            "type": "dashmips",
+            "request": "launch",
+            "name": "MIPS Debug",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "stopOnEntry": true,
+            "registerFormat": "hex",
+            "port": 2390,
+            "host": "localhost",
+        },
     ]
 }

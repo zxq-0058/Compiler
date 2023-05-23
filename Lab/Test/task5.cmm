@@ -1,7 +1,10 @@
 int main() {
     int a[3];
     a[0] = read();
+    write(a[0]);
     a[1] = read();
+    write(a[1]);
     a[2] = a[0] + a[1];
     write(a[2]);
+    return 0;
 }

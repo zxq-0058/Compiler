@@ -6,4 +6,4 @@ int main() {
     d = a / b;
     write(c);
     write(d);
-}
+} 

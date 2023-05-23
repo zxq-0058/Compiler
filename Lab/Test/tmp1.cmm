@@ -1,7 +1,10 @@
+int f(int x) {
+    return 0;
+}
+
 int main()
 {
-    int i, j, k, x;
-    int a[2][3], b[2][4], c[5];
-    x = a[b[i][j]][c[k]];
+    int i = 0;
+    f(i);
     return 0;
 }

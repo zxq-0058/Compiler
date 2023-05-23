@@ -1,0 +1,10 @@
+int main() {
+    int n = read();
+    // 简单的逻辑分析
+    if (n >= 1) {
+        write(1);
+    } else {
+        write(0);
+    }
+    return 0;
+}

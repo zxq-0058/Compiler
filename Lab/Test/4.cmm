@@ -1,19 +1,11 @@
-struct Operands
-{
-    int o1;
-    int o2;
-};
-
-int add(struct Operands temp) {
-    return (temp.o1 + temp.o2);
+// 本测试用来检查参数顺序问题
+int print(int a, int b) {
+    write(a);
+    write(b);
+    return 0;
 }
 
 int main(){
-    int n;
-    struct Operands op;
-    op.o1 = 1;
-    op.o2 = 23;
-    n = op.o1 + op.o2;
-    write(n);
+    print(1, 2);
     return 0;
 }

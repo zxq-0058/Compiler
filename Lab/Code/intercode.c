@@ -912,6 +912,7 @@ Type exp_array(ASTNode *exp, Operand place) {
 /// @param exp ASTNode节点
 void exp_binary(ASTNode *exp, Operand place) {
     // if (place == NULL) return;  // ex : 1 + 1;之类的语句，无实际含义可以直接返回
+    if (place == NULL) place = new_tmp_op();
     Operand left = new_tmp_op();
     Operand right = new_tmp_op();
     int kind = -1;
