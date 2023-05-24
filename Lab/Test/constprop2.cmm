@@ -1,0 +1,49 @@
+/*
+int main() {
+    int a = 1;
+    int b = 2;
+    int c = a + b;
+    int d = c + 3;
+    return d;
+}
+*/
+
+/*
+int main() {
+    int a = 1;
+    int b = 2;
+    int c = a + b + 3;
+    int d = c - 1;
+    int e = d * 2;
+    return e;
+}
+*/
+
+/*
+int main() {
+    int a = 1;
+    int b = 2;
+    int c = 3;
+    int d = a + b + c;
+    int e = d * 2;
+    return e;
+}
+*/
+
+// 上面三个都比较简单，没有考虑界
+int main() {
+    int a = 1;
+    int b = a + 2; // 3
+    int c = b + 3; // 6
+    int d = c + 4; // 10
+    int e = d + 5; // 15
+    int f = e + a; // 16
+    int g = 0;
+    a = 2;
+    b = a + 2; // 4
+    c = b + 3; // 7
+    d = c + 4; // 11
+    e = d + 5; // 16
+    g = f + e; // 32
+    return g; // 32
+}
