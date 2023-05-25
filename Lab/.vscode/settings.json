@@ -12,6 +12,8 @@
     "C_Cpp.clang_format_fallbackStyle": "{ BasedOnStyle: Google, IndentWidth: 4, ColumnLimit: 120 }",
     "C_Cpp.errorSquiggles": "enabled",
     "files.associations": {
-        "syntax.h": "c"
+        "syntax.h": "c",
+        "dag.h": "c",
+        "intercode.h": "c"
     }
 }

@@ -1,3 +1,4 @@
 int main() {
     write(255);
+    return 0;
 }

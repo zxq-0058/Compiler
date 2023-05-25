@@ -1,8 +1,0 @@
-int main()
-{
-    int i = read();
-    int j = i || 1;
-    if (j) write(1); // 奇数
-    else write(-1); // 偶数
-    return 0;
-}

@@ -8,6 +8,8 @@ typedef struct Operand_ *Operand;
 typedef struct InterCode_ *InterCode;
 typedef struct InterCodes_ *InterCodes;
 
+#define isBinop(kind) (kind == IR_ADD || kind == IR_SUB || kind == IR_MUL || kind == IR_DIV)
+
 struct Operand_ {
     enum {
         OP_VARIABLE,  // operand is a variable(源代码里面的变量)
@@ -15,6 +17,7 @@ struct Operand_ {
         OP_CONSTANT,  // operand is a constant(整型常数)
         OP_ADDRESS,   // operand is the address of a variable(地址，结构体或者是数组)
         OP_FUNCTION,  // operand is a function(函数)
+        OP_LABEL      // operand is a label(标签)
     } kind;
     union {
         int var_no;
@@ -102,4 +105,6 @@ struct InterCodes_ {
     InterCodes prev, next;
 };
 
+// common functions:
+int operand_equal(Operand op1, Operand op2);
 #endif

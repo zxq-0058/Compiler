@@ -2,20 +2,14 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Lab4_debug",
+            "name": "Lab5_debug",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/Code/parser",
             "args": [
-                // "./Test/logic2.cmm",
-                // "./Test/task2.cmm",
-            // "./Test/zzw-3.cmm",
-            // "./Test/impossible.cmm",
-            "./Test/tmp1.cmm",  
-                // "./Test/students.cmm",
-            "./Code/out.s"
-                // "./Code/tmp.cmm"
-                // "./Strict_Test/Lab2_Normal/tests/ZZ03.cmm"
+            "./Test/yzy1.cmm",
+            // "./Test/constprop2.cmm",  
+            "./Code/out.ir"
             ],
             "stopAtEntry": true,
             "cwd": "${workspaceFolder}",

@@ -1,0 +1,11 @@
+// 测试常量传播和常量折叠
+
+int main() {
+    int a = 1;
+    int b = 2;
+    int c = 3;
+    int d = 4;
+    int e = 5;
+    int f = a + b + c + d + e;
+    return f;
+}

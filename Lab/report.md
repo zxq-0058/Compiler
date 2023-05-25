@@ -1,55 +1,32 @@
 # 实验四
 
+(1)还是老规矩，先将整个大任务进行拆分：
+- 将输入文件转化为结构体链表
 
-实话实话，我觉得应该先把样例的汇编代码看懂……
+（2）拆分称BasicBlock
+首先我们需要知道怎么将中间代码拆分为基本块：
+- 从第一条语句开始，直到遇到跳转语句，这些语句组成一个基本块
+- 跳转语句的下一条语句也是一个基本块
 
-一开始上来先不要考虑函数调用的怎么写，我们先考虑只有一个函数的情况。
 
+```
+FUNCTION main :
+READ t1
+v1 := t1
+IF v1 >= #1 GOTO label1
 
+GOTO label2
 
+LABEL label1 :
+WRITE #1
+GOTO label3
 
-（1）小任务一(打印常数)：
-int main() {
-    write(1);
-}
+LABEL label2 :
+WRITE #0
 
-生成代码
-
-```c
-/// @brief 参数压入栈，调用write，随后返回
-/// @param op 参数OP
-static void inline write_obj(Operand op) {
-    if (op->kind == OP_CONSTANT) {
-        fprintf(spm_code_file, "  li $a0, %d\n", op->u.value);
-    } else {
-        Panic("Not implemented yet");
-    }
-    const char *str =
-        "  addi $sp, $sp, -4\n"  // 为返回地址分配空间
-        "  sw $ra 0($sp)\n"      // 保存返回地址
-        "  jal write\n"          // 调用write函数
-        "  lw $ra 0($sp)\n"      // 恢复返回地址
-        "  addi $sp, $sp, 4\n"   // 恢复栈指针
-        "  move $v0, $0\n"       // 将函数的返回值设置为零
-        "  jr $ra\n";            // 返回
-    fprintf(spm_code_file, "%s", str);
-}
+LABEL label3 :
+RETURN #0
 ```
 
-从这个例子可以看出，代码风格非常非常重要，写出赏心悦目的代码并不是一件简单的事情
-
-（2）小任务二：
-int main() {
-    write(read());
-}
-
-
-
-(3)小任务三：
-int main() {
-    int a;
-    a = read();
-    write(a);
-}
-
-(4)小任务四：
+（1）临时变量会不会跨越不同的基本块？
+（2）局部优化时删除的无用代码的时，删除的应该是无效的临时变量，而不是Variable?

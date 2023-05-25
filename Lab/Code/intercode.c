@@ -49,9 +49,36 @@ Type exp_struct(ASTNode *exp, Operand place);
 Type exp_array(ASTNode *exp, Operand place);
 void exp_binary(ASTNode *exp, Operand place);
 void translate_args(ASTNode *args);
-void print_intercodes(FILE *fp);
+void print_intercodes(InterCodes head_, FILE *fp);
 
 //============================================================================================================================//
+
+/// @brief 判断两个操作数是否相等(或许需要检查一下)
+int operand_equal(Operand op1, Operand op2) {
+    if (op1 == NULL && op2 == NULL) {
+        return 1;
+    }
+    if (op1 == NULL || op2 == NULL) {
+        return 0;
+    }
+    if (op1->kind != op2->kind) {
+        return 0;
+    }
+    switch (op1->kind) {
+        case OP_VARIABLE:
+            return op1->u.var_no == op2->u.var_no;
+        case OP_CONSTANT:
+            return op1->u.value == op2->u.value;
+        case OP_TEMP:
+            return op1->u.tmp.tmp_no == op2->u.tmp.tmp_no;
+        case OP_LABEL:
+            return op1->u.var_no == op2->u.var_no;
+        case OP_FUNCTION:
+            return strcmp(op1->u.func_name, op2->u.func_name) == 0;
+        default:
+            return 0;
+    }
+}
 
 extern SymbolTable *current_table;
 extern SymbolTable *global_table;
@@ -115,7 +142,7 @@ static inline Operand new_op(Operand src) {
 /// @return Operand
 static inline Operand new_label() {
     Operand label = (Operand)malloc(sizeof(struct Operand_));
-    label->kind = IR_LABEL;
+    label->kind = OP_LABEL;
     label->u.var_no = label_count++;
     return label;
 }
@@ -339,7 +366,7 @@ void insert_dec_ir(Operand op, int size) {
 void translate_program(ASTNode *program, FILE *f) {
     Panic_ON(current_table != global_table, "current_table != global_table");
     translate_extdeflist(program->child_list[0]);
-    print_intercodes(f);
+    print_intercodes(head, f);
 }
 
 void translate_extdeflist(ASTNode *extdeflist) {
@@ -1005,8 +1032,8 @@ char *print_operand(Operand op) {
 
 /// @brief 将中间代码输出到文件中
 /// @param fp 文件指针
-void print_intercodes(FILE *fp) {
-    InterCodes p = head;
+void print_intercodes(InterCodes head_, FILE *fp) {
+    InterCodes p = head_;
     while (p != NULL) {
         switch (p->code->kind) {
             case IR_LABEL:
@@ -1137,5 +1164,138 @@ void print_intercodes(FILE *fp) {
                 break;
         }
         p = p->next;
+    }
+}
+
+/// @brief 打印一条中间代码
+/// @param code 中间代码
+void print_intercode(InterCode code, FILE *fp) {
+    switch (code->kind) {
+        case IR_LABEL:
+            fprintf(fp, "LABEL label%d :\n", code->u.one.op->u.var_no);
+            break;
+        case IR_FUNCTION:
+            fprintf(fp, "FUNCTION %s :\n", code->u.one.op->u.func_name);
+            break;
+        case IR_ASSIGN: {
+            char *lop = print_operand(code->u.assign.left);
+            char *rop = print_operand(code->u.assign.right);
+            int ass_type = code->u.assign.ass_type;
+            switch (ass_type) {
+                case ASS_NORMAL: {
+                    fprintf(fp, "%s := %s\n", lop, rop);
+                    break;
+                }
+                case ASS_GETADDR: {
+                    fprintf(fp, "%s := &%s\n", lop, rop);
+                    break;
+                }
+                case ASS_SETVAL: {
+                    fprintf(fp, "*%s := %s\n", lop, rop);
+                    break;
+                }
+                case ASS_GETVAL: {
+                    fprintf(fp, "%s := *%s\n", lop, rop);
+                    break;
+                }
+                default:
+                    Panic("Not imple");
+            }
+            break;
+        }
+        case IR_ADD: {
+            char *x = print_operand(code->u.binop.result);
+            char *y = print_operand(code->u.binop.op1);
+            char *z = print_operand(code->u.binop.op2);
+            fprintf(fp, "%s := %s + %s\n", x, y, z);
+            break;
+        }
+        case IR_ADDRADD: {
+            // x = &y + z
+            char *x = print_operand(code->u.binop.result);
+            char *y = print_operand(code->u.binop.op1);
+            char *z = print_operand(code->u.binop.op2);
+            fprintf(fp, "%s := &%s + %s\n", x, y, z);
+            break;
+        }
+        case IR_SUB: {
+            char *x = print_operand(code->u.binop.result);
+            char *y = print_operand(code->u.binop.op1);
+            char *z = print_operand(code->u.binop.op2);
+            fprintf(fp, "%s := %s - %s\n", x, y, z);
+            break;
+        }
+        case IR_MUL: {
+            char *x = print_operand(code->u.binop.result);
+            char *y = print_operand(code->u.binop.op1);
+            char *z = print_operand(code->u.binop.op2);
+            fprintf(fp, "%s := %s * %s\n", x, y, z);
+            break;
+        }
+        case IR_DIV: {
+            char *x = print_operand(code->u.binop.result);
+            char *y = print_operand(code->u.binop.op1);
+            char *z = print_operand(code->u.binop.op2);
+            fprintf(fp, "%s := %s / %s\n", x, y, z);
+            break;
+        }
+        case IR_GOTO: {
+            fprintf(fp, "GOTO label%d\n", code->u.one.op->u.var_no);
+            break;
+        }
+        case IR_IFGOTO: {
+            // IF x relop y GOTO z
+            char *x = print_operand(code->u.ifgoto.x);
+            char *y = print_operand(code->u.ifgoto.y);
+            fprintf(fp, "IF %s %s %s GOTO label%d\n", x, code->u.ifgoto.relop, y, code->u.ifgoto.z->u.var_no);
+            break;
+        }
+        case IR_RETURN: {
+            // RETURN x
+            char *one = print_operand(code->u.one.op);
+            fprintf(fp, "RETURN %s\n", one);
+            break;
+        }
+        case IR_DEC: {
+            // DEC x size
+            char *x = print_operand(code->u.dec.op);
+            fprintf(fp, "DEC %s %d\n", x, code->u.dec.size);
+            break;
+        }
+        case IR_ARG: {
+            // ARG x
+            char *arg = print_operand(code->u.one.op);
+            fprintf(fp, "ARG %s\n", arg);
+            break;
+        }
+        case IR_CALL: {
+            // x := CALL f
+            char *x = print_operand(code->u.two.left);
+            char *f = print_operand(code->u.two.right);
+            fprintf(fp, "%s := CALL %s\n", x, f);
+            break;
+        }
+        case IR_PARAM: {
+            // PARAM x
+            Operand op = code->u.one.op;
+            char *str = (char *)malloc(16);
+            sprintf(str, "v%d", op->u.var_no);
+            fprintf(fp, "PARAM %s\n", str);
+            free(str);
+            break;
+        }
+        case IR_READ: {
+            char *x = print_operand(code->u.one.op);
+            fprintf(fp, "READ %s\n", x);
+            break;
+        }
+        case IR_WRITE: {
+            char *x = print_operand(code->u.one.op);
+            fprintf(fp, "WRITE %s\n", x);
+            break;
+        }
+        default:
+            Panic("Invalid InterCode");
+            break;
     }
 }

@@ -39,4 +39,11 @@
 #define Log(...)
 #endif
 
+// #define DEBUG_ON
+#ifdef DEBUG_ON
+#define Debug(format, ...) printf("\33[1;33m[%s,%d,%s] " format "\33[0m\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
+#else
+#define Debug(...)
+#endif
+
 #endif

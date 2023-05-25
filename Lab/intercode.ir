@@ -1,8 +1,38 @@
-FUNCTION f :
+FUNCTION succ :
 PARAM v1
+t1 := v1 + #1
+RETURN t1
+FUNCTION zero :
 RETURN #0
+FUNCTION one :
+t6 := CALL zero
+ARG t6
+t5 := CALL succ
+RETURN t5
+FUNCTION two :
+t8 := CALL one
+ARG t8
+t7 := CALL succ
+RETURN t7
+FUNCTION three :
+t10 := CALL two
+ARG t10
+t9 := CALL succ
+RETURN t9
+FUNCTION four :
+t12 := CALL three
+ARG t12
+t11 := CALL succ
+RETURN t11
+FUNCTION five :
+t14 := CALL four
+ARG t14
+t13 := CALL succ
+RETURN t13
 FUNCTION main :
-v2 := #0
-ARG v2
-t4 := CALL f
+t16 := CALL five
+t17 := CALL four
+t15 := t16 * t17
+v2 := t15
+WRITE v2
 RETURN #0
