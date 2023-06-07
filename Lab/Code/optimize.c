@@ -2,6 +2,7 @@
 
 #include "basicblock.h"
 #include "constprop.h"
+#include "dag.h"
 #include "deadcode.h"
 #include "intercode.h"
 #include "logger.h"
@@ -205,11 +206,38 @@ void optimize_intercodes(FILE *in, FILE *out) {
     BasicBlock blocks = NULL;
     int blockCount = 0;
     split_into_basicblocks(codes, &blocks, &blockCount);
+
+#ifdef DEBUG_ON
+    Debug("After split into basic blocks:\n");
     print_basicblocks(blocks, blockCount);  // for debugging
-    while (blocks != NULL) {
-        const_propagate(blocks->start, blocks->end);
-        // deadcode_elimination(blocks);
-        blocks = blocks->next;
+#endif
+
+    // 局部优化
+    BasicBlock block = blocks;
+    while (block != NULL) {
+        const_propagate(block);
+        common_exp_optimize(block);
+        block = block->next;
     }
-    print_intercodes(codes, out);
+
+    create_flowgraphs(blocks);
+
+#ifdef GLOBAL_OPTIMIZE_ON
+    global_const_propagation();
+    compute_dfn();
+    compute_dominators();
+    compute_backedges();
+    compute_loops();
+
+    loop_const_optimize();
+
+#endif
+    flw_graphs_export_code(out);
+
+#ifdef DEBUG_ON
+    flw_graphs_export_code(stdout);
+#endif
 }
+
+// 69473269
+// 69676043

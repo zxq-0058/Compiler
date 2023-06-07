@@ -1,4 +1,5 @@
 int main() {
-    write(255);
+    int v = 255;
+    write(v);
     return 0;
 }

@@ -1,0 +1,10 @@
+int main() {
+    int a, b, c, d, e, f, g, h, i, j, x, y;
+    a = read();
+    b = read();
+    c = read();
+    d = a + b;
+    e = c * b;
+    f = a + b;  // f = d
+    return 0;
+}

@@ -1,0 +1,25 @@
+int main() {
+    int v1, v2, v3, v4, v5, v7, v8, v9;
+    v1 = read();
+    v2 = read();
+    v3 = v1 + 1;      // NAC
+    v4 = 2;           // 2
+    v5 = v3 * v4;     // NAC
+    v8 = v3 + 2;      // NAC
+    v7 = v3 * 2;      // NAC
+    v9 = 2 * v3 + 4;  // NAC
+    if (v7 == v9) {
+        v2 = v3;
+        v1 = v5 + v2;
+        v9 = v3 * v7;
+    } else {
+        v3 = 3;
+        v5 = v4 + 5;
+        v1 = 2 * v8;
+        v2 = v9 - v1;
+    }
+    v8 = v1 + v2;
+    v7 = v3;
+    v9 = v5 - v2;
+    return 0;
+}

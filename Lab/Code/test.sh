@@ -48,16 +48,16 @@ set -e
 # echo -e "\033[1;32m#### task5.cmm 文件输出结束，进行文件比对 ####\033[0m"
 # diff intercode.ir optimize.ir
 
-for i in {7..7}; do
+for i in {1..11}; do
     echo  -e "\033[1;32m######## 开始测试 task"${i}" ##############\033[0m"
     echo  -e "\033[1;32m原代码为：\033[0m"
     cat ../Test/task${i}.cmm
     ./parser ../Test/task${i}.cmm optimize.ir
     echo -e "\033[1;32m#### 中间代码为： ####\033[0m"
-    cat intercode.ir
+    # cat intercode.ir
     echo -e "\033[1;32m#### task${i}.cmm 文件输出为: ####\033[0m"
-    cat optimize.ir
-    # echo -e "\033[1;32m#### task${i}.cmm 文件输出结束，进行文件比对 ####\033[0m"
-    # diff intercode.ir optimize.ir
+    # cat optimize.ir
+    echo -e "\033[1;32m#### task${i}.cmm 文件输出结束，进行文件比对 ####\033[0m"
+    diff intercode.ir optimize.ir
 done
 

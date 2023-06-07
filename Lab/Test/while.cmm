@@ -1,0 +1,54 @@
+/*
+测试（1）
+int main() {
+    int a = 0, b = 0, c = 2, d = 0;
+    while (a < 10) {
+        a = a + 1;
+        b = c;  // 输出代码：b = #2
+        while (d < 10) {
+            d = d + 1;
+            b = c;  // 输出代码：b = #2
+        }
+    }
+    return 0;
+}
+*/
+
+int main() {
+    int a = 0, b = 0, c = 2, d = 0, f = 3;
+    while (a < 10) {
+        a = a + 1;
+        b = c * f;  // 输出代码：b = #6
+        while (d < 10) {
+            d = d + 1;
+            b = c + 1;  // 输出代码：b = #3
+        }
+    }
+    return 0;
+}
+
+/**
+
+求支配点结果：
+[basicblock.c,421,compute_dominators_] block 0:
+1111000001
+[basicblock.c,421,compute_dominators_] block 1:
+0100000000
+[basicblock.c,421,compute_dominators_] block 2:
+0110000000
+[basicblock.c,421,compute_dominators_] block 3:
+0111000000
+[basicblock.c,421,compute_dominators_] block 4:
+0110100000
+[basicblock.c,421,compute_dominators_] block 5:
+0110110000
+[basicblock.c,421,compute_dominators_] block 6:
+0110111000
+[basicblock.c,421,compute_dominators_] block 7:
+0110110100
+[basicblock.c,421,compute_dominators_] block 8:
+0110111010
+[basicblock.c,421,compute_dominators_] block 9:
+0111000001
+
+*/

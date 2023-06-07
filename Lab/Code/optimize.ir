@@ -1,20 +1,24 @@
 FUNCTION main :
-v1 := #0
-v2 := #1
-v3 := #0
-READ t5
-v4 := t5
-LABEL label1 :
-IF v3 < v4 GOTO label2
-GOTO label3
-LABEL label2 :
-t8 := v1 + v2
-v5 := t8
-WRITE v2
-v1 := v2
-v2 := v5
-t17 := v3 + #1
-v3 := t17
-GOTO label1
-LABEL label3 :
-RETURN #0
+v1 := #1
+t2 := #3
+v2 := #3
+t5 := #6
+v3 := #6
+t8 := #10
+v4 := #10
+t11 := #15
+v5 := #15
+t14 := #16
+v6 := #16
+v7 := #0
+v1 := #2
+t21 := #4
+v2 := #4
+t25 := #7
+v3 := #7
+t29 := #11
+v4 := #11
+v5 := #16
+t37 := #32
+v7 := #32
+RETURN #32

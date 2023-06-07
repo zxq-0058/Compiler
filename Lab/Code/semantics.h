@@ -16,7 +16,7 @@
 typedef struct Type_ *Type;
 typedef struct FieldList_ *FieldList;
 
-enum BasicType { INT, FLOAT } BasicType;
+enum { INT, FLOAT };
 
 struct Type_ {
     enum { BASIC, ARRAY, STRUCTURE } kind;

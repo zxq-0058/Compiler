@@ -46,4 +46,6 @@
 #define Debug(...)
 #endif
 
+#define GLOBAL_OPTIMIZE_ON
+
 #endif

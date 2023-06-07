@@ -1,38 +1,131 @@
-FUNCTION succ :
+FUNCTION Swap :
 PARAM v1
-t1 := v1 + #1
-RETURN t1
-FUNCTION zero :
+PARAM v2
+PARAM v3
+t5 := v2 * #4
+t6 := v1 + t5
+t2 := *t6
+v4 := t2
+t11 := v2 * #4
+t7 := v1 + t11
+t14 := v3 * #4
+t15 := v1 + t14
+t8 := *t15
+*t7 := t8
+t20 := v3 * #4
+t16 := v1 + t20
+*t16 := v4
 RETURN #0
-FUNCTION one :
-t6 := CALL zero
-ARG t6
-t5 := CALL succ
-RETURN t5
-FUNCTION two :
-t8 := CALL one
-ARG t8
-t7 := CALL succ
-RETURN t7
-FUNCTION three :
-t10 := CALL two
-ARG t10
-t9 := CALL succ
-RETURN t9
-FUNCTION four :
-t12 := CALL three
-ARG t12
-t11 := CALL succ
-RETURN t11
-FUNCTION five :
-t14 := CALL four
-ARG t14
-t13 := CALL succ
-RETURN t13
+FUNCTION Partition :
+PARAM v5
+PARAM v6
+PARAM v7
+t25 := v6 * #4
+t26 := v5 + t25
+t22 := *t26
+v8 := t22
+LABEL label1 :
+IF v6 < v7 GOTO label2
+GOTO label3
+LABEL label2 :
+LABEL label4 :
+IF v6 < v7 GOTO label7
+GOTO label6
+LABEL label7 :
+t35 := v7 * #4
+t36 := v5 + t35
+t31 := *t36
+IF t31 >= v8 GOTO label5
+GOTO label6
+LABEL label5 :
+t38 := v7 - #1
+v7 := t38
+GOTO label4
+LABEL label6 :
+ARG v7
+ARG v6
+ARG v5
+t44 := CALL Swap
+LABEL label8 :
+IF v6 < v7 GOTO label11
+GOTO label10
+LABEL label11 :
+t51 := v6 * #4
+t52 := v5 + t51
+t47 := *t52
+IF t47 <= v8 GOTO label9
+GOTO label10
+LABEL label9 :
+t54 := v6 + #1
+v6 := t54
+GOTO label8
+LABEL label10 :
+ARG v7
+ARG v6
+ARG v5
+t60 := CALL Swap
+GOTO label1
+LABEL label3 :
+RETURN v6
+FUNCTION QuickSort :
+PARAM v9
+PARAM v10
+PARAM v11
+IF v10 < v11 GOTO label12
+GOTO label13
+LABEL label12 :
+ARG v11
+ARG v10
+ARG v9
+t64 := CALL Partition
+v12 := t64
+t70 := v12 - #1
+ARG t70
+ARG v10
+ARG v9
+t73 := CALL QuickSort
+t75 := v12 + #1
+ARG v11
+ARG t75
+ARG v9
+t79 := CALL QuickSort
+LABEL label13 :
+RETURN #0
 FUNCTION main :
-t16 := CALL five
-t17 := CALL four
-t15 := t16 * t17
-v2 := t15
-WRITE v2
+v13 := #8
+DEC v14 32
+v15 := #0
+LABEL label14 :
+IF v15 < v13 GOTO label15
+GOTO label16
+LABEL label15 :
+t87 := &v14
+t89 := v15 * #4
+t85 := t87 + t89
+READ t86
+*t85 := t86
+t91 := v15 + #1
+v15 := t91
+GOTO label14
+LABEL label16 :
+t94 := &v14
+t96 := v13 - #1
+ARG t96
+ARG #0
+ARG t94
+t99 := CALL QuickSort
+v15 := #0
+LABEL label17 :
+IF v15 < v13 GOTO label18
+GOTO label19
+LABEL label18 :
+t105 := &v14
+t107 := v15 * #4
+t108 := t105 + t107
+t104 := *t108
+WRITE t104
+t110 := v15 + #1
+v15 := t110
+GOTO label17
+LABEL label19 :
 RETURN #0

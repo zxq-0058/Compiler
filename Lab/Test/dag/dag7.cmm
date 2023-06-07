@@ -1,0 +1,9 @@
+int main() {
+    int monthdays[5];
+    monthdays[0] = 0;
+    monthdays[1] = 31;
+    monthdays[2] = 28;
+    monthdays[3] = 31;
+    monthdays[4] = 30;
+    return 0;
+}

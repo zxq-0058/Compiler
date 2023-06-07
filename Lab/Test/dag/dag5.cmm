@@ -1,0 +1,11 @@
+int main() {
+    int x[2], tmp, j = 1;
+    x[0] = 2;
+    x[1] = 1;
+    // tmp = x[j];
+    x[j] = x[j - 1];
+    // x[j - 1] = x[j];
+    write(x[0]);  // 1
+    write(x[1]);  // 1
+    return 0;
+}

@@ -711,6 +711,7 @@ Type translate_exp(ASTNode *exp, Operand place) {
             Type ret = NULL;
             if (match(exp, 3, "Exp", "MINUS", "Exp")) {
                 // Exp -> MINUS Exp
+                if (place == NULL) place = new_tmp_op();
                 Operand tmp = new_tmp_op();
                 ret = translate_exp(exp->child_list[1], tmp);
                 insert_binop_ir(IR_SUB, place, new_const(0), tmp);

@@ -1,0 +1,10 @@
+int main() {
+    int const1 = 3;
+    int i = 11;  // i = 0;
+    while (i < 10) {
+        const1 = 2;
+        i = i + 1;
+    }
+    write(const1);
+    return 0;
+}
