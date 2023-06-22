@@ -1,8 +1,0 @@
-FUNCTION f :
-PARAM v1
-RETURN #0
-FUNCTION main :
-v2 := #0
-ARG v2
-t4 := CALL f
-RETURN #0

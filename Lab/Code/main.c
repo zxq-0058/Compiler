@@ -16,6 +16,7 @@ extern void translate_program(ASTNode *root, FILE *out);
 extern void ir2obj(FILE *fp);
 extern int lexical_error;
 extern int syntax_error;
+extern int semantic_error;
 // extern int yydebug;
 
 int main(int argc, char **argv) {
@@ -36,10 +37,13 @@ int main(int argc, char **argv) {
     if (!lexical_error && !syntax_error) {
         // print_AST();
         program_handler(ast_root);
-        translate_program(ast_root, ir);
-        fflush(ir);
-        setlinebuf(out);
-        ir2obj(out);
+        if (!semantic_error) {
+            translate_program(ast_root, ir);
+            // the following two lines are for debugging
+            // fflush(ir);
+            // setlinebuf(out);
+            ir2obj(out);
+        }
     }
     return 0;
 }

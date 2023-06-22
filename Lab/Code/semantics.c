@@ -1041,7 +1041,10 @@ void args_handler(ASTNode *args, ArgList *arglist) {
     }
 }
 
+// ========================================================================== //
+int semantic_error = 0;
 void sem_error(int type, int lineno, const char *format, ...) {
+    semantic_error = 1;
     va_list args;
     va_start(args, format);
     fprintf(stdout, "Error type %d at Line %d: ", type, lineno);
